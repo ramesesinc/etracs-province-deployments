@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+
+  mail-primary: 
+    container_name: mail-primary
+    image: ramesesinc/mail-server:latest
+    restart: always
+    logging: 
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    environment:
+      TZ: "Asia/Manila"
+    env_file:
+      - ./env.conf
+      - ../../_res/env.conf
+      - ../../_custom/env.conf
+    ports:
+      - "2525:25"
