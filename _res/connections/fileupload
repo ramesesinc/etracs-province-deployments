@@ -1,0 +1,7 @@
+provider=fileupload
+host=${app_server_ip}
+port=7000
+channel=${fileupload_channel}
+uploadDir=/fileserver/uploads
+downloadDir=/fileserver/downloads
+debug=true
