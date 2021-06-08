@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+
+  etracs-web:
+    container_name: etracs-web
+    image: ramesesinc/etracs-web:2.5.02.01
+    restart: always
+    logging:
+      driver: "json-file"
+      options: 
+        max-file: "5"
+        max-size: 10m
+    environment:
+      TZ: "Asia/Manila"
+    env_file:
+      - ./env.conf
+      - ../../_res/env.conf
+      - ../../_custom/env.conf
+    ports:
+      - "8080:8080"
