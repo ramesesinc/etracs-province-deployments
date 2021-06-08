@@ -42,4 +42,4 @@ docker pull ramesesinc/local-epayment-server:2.5.01.02.05
 
 
 [GitHub]
-git clone https://github.com/ramesesinc/etracs-province-deployments.git
+git clone -b ilocosnorte https://github.com/ramesesinc/etracs-province-deployments.git
