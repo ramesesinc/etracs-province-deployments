@@ -1,0 +1,78 @@
+UPGRADE PROCEDURE 254 to 255
+====================================
+
+1. Install Git SCM 
+
+2. Clone "etracs-province-deployments"
+
+    2.1.    Open Windows Explorer
+    2.2.    Browse to c:\ and create SERVERS folder
+    2.3.    Right-click SERVERS folder and select "Git Bash Here"
+    2.4.    Enter the command below
+
+            $ git clone -b ilocosnorte https://github.com/ramesesinc/etracs-province-deployments.git 
+
+    2.5.    Rename "etracs-province-deployments" to "etracs255-server-ilocosnorte" 
+
+3. Configure "etracs255-server-ilocosnorte"
+
+    3.1.    Open Windows Explorer and browse 
+            to SERVER_DIR => "c:\SERVERS\etracs255-server-ilocosnorte" 
+    3.2.    Unzip "custom-template.zip.gz"
+    3.3.    Edit "bin/env.conf" file. Set the following and save:
+
+                lgu_name        - the ETRACS Client title to display e.g. Municipality of Solsona
+
+                app_server_ip   - the etracs application server ip address
+
+                dbserver_host   - change db server host in case the database is in another host
+                dbserver_user   - database user to use 
+                dbserver_pass   - database user password 
+
+                db_etracs       - name of etracs main database 
+                db_notification - name of notification database
+                db_image        - name of image database 
+
+                channel         - lgu pin e.g. 00321 for solsona 
+
+
+4. Create "etracs255_lguname" database
+
+    4.1.    Backup "etracs254_lguname" database 
+    4.2.    Create "etracs255_lguname" database 
+    4.3.    Restore "etracs254_lguname" backup to "etracs255_lguname" database 
+
+    4.4.    Launch Navicat and select "etracs255_lguname" database
+
+    4.5.    Execute in sequence the Treasury, BPLS and RPTIS migration scripts 
+            in SERVER_DIR/migration/"your-lgu-name" folder.
+
+            - 01-upgrade.sql
+            - 02-patch-etracs.sql
+            - 03-patch-etracs-rptis.sql
+
+    4.6.    Select "etracs image database" and execute the patch script:
+
+            - 03-patch-rptis-image.sql
+
+
+5. Start ETRACS Application Server 
+
+    5.1.    Open SERVER_DIR/bin folder 
+    5.2.    Double-click "run.bat" to start server 
+
+6. Download ETRACS Client 
+
+    Requirement: Java 1.8 must be installed
+
+    6.1.    Open Google Chrome or any Web Browser 
+    6.2.    Enter the url => http://serveripaddress:8000/platform/
+            Be sure to change serveripaddress to the actual address of the server 
+    6.3.    Download etracs255-platform.zip 
+    6.4.    Unzip to c:\ folder 
+    6.5.    Edit CLIENT_DIR/client.conf file
+    6.6.    Change "localhost" to the IP Address of ETRACS Download Server
+
+
+
+
