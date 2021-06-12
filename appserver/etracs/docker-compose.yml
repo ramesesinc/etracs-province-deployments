@@ -29,3 +29,6 @@ services:
 
       - ../../_custom/output:/apps/server/output
       - ../../_custom/fileserver:/fileserver
+
+      ## temporarily mounting a blank folder to disable old sync services
+      - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
