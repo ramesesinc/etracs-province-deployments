@@ -37,3 +37,6 @@ services:
       - ../../_res/connections:/apps/gdx/connections/ext
 
       - ./lib/rameses-common2.jar:/apps/server/lib/rameses-common2.jar
+      - ./lib/rameses-gdx-coordinator.jar:/apps/server/lib/rameses-gdx-coordinator.jar
+      
+      - ./dev-modules/rameses-rptis-gdx-services.jar:/apps/server/apps/gdx/plugins/rameses-rptis-gdx-services.jar

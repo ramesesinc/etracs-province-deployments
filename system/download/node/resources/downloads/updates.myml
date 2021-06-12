@@ -13,6 +13,12 @@ app:
       "#res.host" : "${app_server_ip}"
       "socketio.host" : "${app_server_ip}:7080"
 
+      "entity.app.host": "${app_server_ip}:8070"
+      "entity.app.context": "etracs25"
+
+      "rpt.app.host": "${app_server_ip}:8070"
+      "rpt.app.context": "etracs25"
+
    modules:
       # 3rd party libs
       - { order: 90, version: 2.02, file: "modules/libs/commons-net-3.5.jar" }
