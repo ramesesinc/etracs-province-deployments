@@ -4,7 +4,7 @@ services:
 
   epayment-server:
     container_name: epayment-server
-    image: ramesesinc/local-epayment-server:2.5.01.02.05
+    image: ramesesinc/local-epayment-server:2.5.01.02.06
     restart: always
     logging: 
       driver: "json-file"
