@@ -8,6 +8,7 @@ app:
       "app.loader" : "com.rameses.osiris2.client.OsirisAppLoader"
       readTimeout : 300000
       connectionTimeout : 5000
+      "report.custom" : "ilocosnorte"
       "filemgmt.enabled" : false
       "ws.host" : "${app_server_ip}:8060"
       "#res.host" : "${app_server_ip}"
