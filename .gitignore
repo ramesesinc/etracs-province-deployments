@@ -8,3 +8,4 @@ _tmp
 Thumbs.db
 docker-compose-test.yml
 *.mp4
+__tools
