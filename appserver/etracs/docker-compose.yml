@@ -37,3 +37,4 @@ services:
       - ./dev_modules/rules:/services/modules/rules
       - ./dev_modules/treasury:/services/modules/treasury
       - ./dev_modules/etracs:/services/modules/etracs
+      - ./dev_modules/enterprise:/services/modules/enterprise
