@@ -39,3 +39,4 @@ services:
       - ./dev_modules/etracs:/services/modules/etracs
       - ./dev_modules/enterprise:/services/modules/enterprise
       - ./dev_modules/entity:/services/modules/entity
+      - ./dev_modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
