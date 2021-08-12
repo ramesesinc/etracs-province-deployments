@@ -23,6 +23,6 @@ services:
       - ../../_res/connections:/enterprise/connections/ext
       - ../../_custom/datasources/epaymentds:/services/datasources/mainds
 
-      - ./module-client/reports:/apps/server/templates
+      - ./client/reports:/apps/server/templates
       - ../../_custom/module-client/epayment:/apps/server/templates/custom
       - ../../_custom/output:/apps/server/output
