@@ -1,6 +1,8 @@
 app:
 
    env:
+      "rpt.app.host": "${app_server_ip}:8070"
+      "rpt.app.context": "etracs25"
 
    modules:
       - { order: 240, version: 2.03, file: "modules/rptis/rameses-gov-etracs-rptis-landtax.jar" }

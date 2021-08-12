@@ -1,6 +1,6 @@
 app:
    env:
-      "app.title" : "ETRACS 2.5 build 2.5.04.01.01 (${lgu_name})"
+      "app.title" : "ETRACS 2.5 build 2.5.04.02.01 (${lgu_name})"
       "app.host" : "${app_server_ip}:8070"
       "app.cluster" : "osiris3"
       "app.context" : "etracs25"
@@ -13,12 +13,6 @@ app:
       "ws.host" : "${app_server_ip}:8060"
       "#res.host" : "${app_server_ip}"
       "socketio.host" : "${app_server_ip}:7080"
-
-      "entity.app.host": "${app_server_ip}:8070"
-      "entity.app.context": "etracs25"
-
-      "rpt.app.host": "${app_server_ip}:8070"
-      "rpt.app.context": "etracs25"
 
    modules:
       # 3rd party libs
