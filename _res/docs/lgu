@@ -1,29 +1,29 @@
 [Docker Server]
-IP  : 172.16.14.94
+IP  : 192.168.14.5
 User: etracsddn
 Pass: 3tr@csddn67
 
 
 [DB Access]
-IP   : 172.16.14.94
+IP   : 192.168.14.4
 User : root
 Pass : P@ssw0rd#
 
 
 [Webmin]
-URL  : https://172.16.14.94:10000
+URL  : https://192.168.14.5:10000
 User : <Same access from Docker Server>
 Pass : <Same access from Docker Server>
 
 
 [Portainer]
-URL  : http://172.16.14.94:9000
+URL  : http://192.168.14.5:9000
 User : admin
 Pass : p@ssw0rd
 
 
 [Samba]
-URL  : \\172.16.14.94
+URL  : \\192.168.14.5
 User : etracsddn
 Pass : p@ssw0rd
 
