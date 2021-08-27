@@ -8,6 +8,9 @@ class OnlineTicketingService {
 	@Service('TicketingCashReceiptService')
 	def cashReceiptSvc; 
 
+	@Service('TicketingPaymentService')
+	def paymentSvc; 
+
 
 	@DataContext('ticketing_terminal')
 	def em_terminal;
@@ -19,11 +22,11 @@ class OnlineTicketingService {
 	}
 
 	@ProxyMethod
-	public def getBilling( info ) { 
+	public def getBilling( param ) { 
         // 
 		// Required Parameter Structures: 
 		// 
-		// info = [
+		// param.info = [
 		// 	  route: [ objid: 'x', name: 'x'], 
 		// 	  numadult: 2, 
 		// 	  numchildren: 0, 
@@ -34,15 +37,25 @@ class OnlineTicketingService {
 		// ]; 
         // 
 
-        if ( !info ) throw new Exception("info  parameter is required in getBilling"); 
+        if ( !param ) throw new Exception("param  parameter is required in getBilling"); 
+        if ( !param.info ) throw new Exception("param.info  parameter is required in getBilling"); 
 
-        if ( !info.tag ) throw new Exception("info.tag  parameter is requried in getBilling"); 
+        if ( !param.info.tag ) throw new Exception("info.tag  parameter is requried in getBilling"); 
 
-        def arg0 = [ params: [ info: info ]];
+
+        def billdate = param.billdate; 
+        if ( !billdate ) {
+        	billdate = dtSvc.serverDate; 
+        }
+
+        def arg0 = [:]; 
+        arg0.billdate = billdate; 
+        arg0.params = [ info: param.info ];
+
 		def res = cashReceiptSvc.getBilling( arg0 ); 
 
 		def bill = [ items: [], amount: 0.0 ];
-		bill.billdate = dtSvc.serverDate;
+		bill.billdate = billdate; 
 		bill.billno = 'B00121';
 
 		res.billitems.each{
@@ -54,5 +67,36 @@ class OnlineTicketingService {
 		} 
 
 		return bill;
+	}
+
+
+	@ProxyMethod
+	public def verifyPayment( po ) { 
+        if ( !po ) throw new Exception("po  parameter is required in verifyPayment"); 
+        if ( !po.info ) throw new Exception("po.info  parameter is required in verifyPayment"); 
+
+        def param = [:]; 
+        param.info = po.info;
+        param.billdate = po.billdate; 
+
+        def bill = getBilling( param ); 
+        bill.info = po.info; 
+        return bill; 
+	} 
+
+
+	@ProxyMethod
+	public void postPayment( eor, bill ) {
+        if ( !eor ) throw new Exception("eor  parameter is required in postPayment"); 
+        if ( !bill ) throw new Exception("bill  parameter is required in postPayment"); 
+
+		def param = [:]; 
+		param.objid = eor.objid; 
+		param.txndate = eor.txndate;
+		param.reftype = 'eor';
+		param.receiptno = eor.receiptno;
+		param.info = bill.info; 
+		
+		paymentSvc.postPayment( param ); 
 	}
 }
