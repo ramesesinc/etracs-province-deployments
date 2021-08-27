@@ -1,0 +1,18 @@
+import com.rameses.annotations.*;
+
+class AklanTerminalTicketService {
+
+	@Service(value='TicketingService', connection='ticketing')
+	def proxySvc; 
+
+
+	@ProxyMethod 
+	public def verify( params ) {
+		return proxySvc.verify( params ); 
+	} 
+
+	@ProxyMethod 
+	public def consume( params ) {
+		return proxySvc.consume( params ); 
+	} 
+} 

@@ -1,0 +1,56 @@
+import com.rameses.annotations.*;
+
+class TicketingTurnstileListInterceptor { 
+	
+	@DataContext('ticketing_turnstile_item') 
+	def turnstile_item; 
+
+	@After(pattern="QueryService.getNodeList", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void afterGetNodeList( evt ) {
+		def result = evt.result;
+		result << [title:'ACTIVE', state:'ACTIVE'];
+		result << [title:'INACTIVE', state:'INACTIVE'];
+		result << [title:'CANCELLED', state:'CANCELLED'];
+	}
+
+
+	@Before(pattern="QueryService.getList", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void beforeGetList( evt ) {
+		def o = evt.args[0];
+		def wherelist = [];
+		def wheremap  = [:]; 
+
+		if ( o.node?.state ) {
+			wherelist << "state = :state"; 
+			wheremap.state = o.node.state; 
+		}
+
+		if ( o.exclude instanceof List && o.exclude ) {
+			wherelist << "objid NOT IN ("+ o.exclude.collect{( "'"+ it +"'" )}.join(",") +")"; 
+		} 
+		else if ( o.exclude instanceof Map && o.exclude.objid ) {
+			wherelist << "objid NOT IN ('"+ o.exclude.objid +"')"; 
+		}
+		else if ( o.exclude instanceof String ) {
+			wherelist << "objid NOT IN ('"+ o.exclude +"')"; 
+		}
+
+		if ( o.where ) {
+			wherelist << o.where[0]; 
+			o.where[0] = wherelist.join(" AND "); 
+			o.where[1].putAll( wheremap ); 
+		}
+		else {
+			o.where = [wherelist.join(" AND "), wheremap]; 
+		}
+	}
+
+	@After(pattern="QueryService.getList", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void afterGetList( evt ) {
+		def result = evt.result;
+		result.each {
+			def tags = turnstile_item.getCategories([ turnstileid: it.objid.toString() ]); 
+			it.tags = tags.collect{ it.title }.findAll{ it }.join(', '); 
+		}
+	} 
+}

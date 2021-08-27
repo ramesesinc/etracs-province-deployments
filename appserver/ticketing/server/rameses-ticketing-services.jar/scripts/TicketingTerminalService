@@ -1,0 +1,24 @@
+import com.rameses.annotations.*;
+
+class TicketingTerminalService {
+
+	@DataContext('ticketing_terminal') 
+	def em_terminal; 
+
+
+	@ProxyMethod 
+	public def activate( param ) { 
+		return changeState( param.objid, 'ACTIVE' ); 
+	} 
+
+	@ProxyMethod 
+	public def deactivate( param ) { 
+		return changeState( param.objid, 'INACTIVE' ); 
+	} 
+
+	def changeState( objid, state ) { 
+		def findby = [ objid: objid.toString() ]; 
+		em_terminal.find( findby ).update([ state: state ]); 
+		return em_terminal.find( findby ).select('objid,state').first(); 
+	} 
+} 

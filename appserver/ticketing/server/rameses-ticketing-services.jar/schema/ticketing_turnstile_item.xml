@@ -1,0 +1,6 @@
+<schema>
+	<element tablename="turnstile_item">
+		<field name="categoryid" primary="true"/>
+		<field name="turnstileid" primary="true"/>
+	</element> 
+</schema>

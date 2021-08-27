@@ -1,0 +1,18 @@
+<schema>
+	<element tablename="vw_ticket">
+		<field name="objid" primary="true" />
+		<field name="seqno" caption="SeqNo" searchable="true" indexed="true"/>
+		<field name="barcode" caption="Barcode" searchable="true" indexed="true"/>
+		<field name="dtfiled" caption="DateFiled" indexed="true"/>
+		<field name="dtused" caption="DateConsumed" /> 
+		<field name="guesttype" />
+		<field name="refid" />
+		<field name="reftype" caption="RefType" />
+		<field name="refno" caption="RefNo" searchable="true" indexed="true"/>
+		<field name="tag" caption="Tag" />
+		<field name="voided" caption="Voided" />
+		<field name="void_objid" />
+		<field name="void_txndate" caption="DateVoid"/>
+		<field name="void_reason" caption="Reason"/>
+	</element>
+</schema>

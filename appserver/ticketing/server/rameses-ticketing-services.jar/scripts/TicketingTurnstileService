@@ -1,0 +1,24 @@
+import com.rameses.annotations.*;
+
+class TicketingTurnstileService {
+
+	@DataContext('ticketing_turnstile') 
+	def turnstile; 
+
+
+	@ProxyMethod 
+	public def activate( param ) { 
+		return changeState( param.objid, 'ACTIVE' ); 
+	} 
+
+	@ProxyMethod 
+	public def deactivate( param ) { 
+		return changeState( param.objid, 'INACTIVE' ); 
+	} 
+
+	def changeState( objid, state ) { 
+		def findby = [ objid: objid.toString() ]; 
+		turnstile.find( findby ).update([ state: state ]); 
+		return turnstile.find( findby ).select('objid,state').first(); 
+	} 
+}	

@@ -1,0 +1,45 @@
+[Docker Server]
+IP  : 192.168.2.220
+User: etracs255
+Pass: etracs255
+
+
+[DB Access]
+IP   : 192.168.2.220
+User : 
+Pass : 
+
+
+[Webmin]
+URL  : https://192.168.2.220:10000
+User : <Same access of Docker Server>
+Pass : <Same access of Docker Server>
+
+
+[Portainer]
+URL  : http://192.168.2.220:9000
+User : admin
+Pass : p@ssw0rd
+
+
+[Samba]
+URL  : \\192.168.2.220
+User : etracs255
+Pass : p@ssw0rd
+
+
+[DockerHub Images]
+docker pull nginx:latest
+docker pull ramesesinc/mail-server:latest
+docker pull ramesesinc/notification-server:1.0
+docker pull ramesesinc/queue-server:2.5.02.01
+docker pull ramesesinc/gdx-proxy-server:v002
+docker pull ramesesinc/gdx-client:1.03.01
+docker pull ramesesinc/etracs-web:2.5.02.01
+docker pull ramesesinc/node-download-server:0.0.3
+docker pull ramesesinc/etracs-server-province:2.5.04.01.01
+docker pull ramesesinc/local-epayment-server:2.5.01.02.06
+
+
+[GitHub]
+git clone https://github.com/ramesesinc/etracs-province-deployments.git

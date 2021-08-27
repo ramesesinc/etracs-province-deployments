@@ -1,0 +1,30 @@
+import com.rameses.annotations.*;
+
+class TicketingTurnstileCategoryListInterceptor { 
+	
+	@Before(pattern="QueryService.getList", eval="#{ args[0]._schemaname == 'ticketing_turnstile_category' }")
+	public void beforeGetList( evt ) {
+		def o = evt.args[0];
+		def wherelist = [];
+		def wheremap  = [:]; 
+
+		if ( o.exclude instanceof List && o.exclude ) {
+			wherelist << "objid NOT IN ("+ o.exclude.collect{( "'"+ it +"'" )}.join(",") +")"; 
+		} 
+		else if ( o.exclude instanceof Map && o.exclude.objid ) {
+			wherelist << "objid NOT IN ('"+ o.exclude.objid +"')"; 
+		}
+		else if ( o.exclude instanceof String ) {
+			wherelist << "objid NOT IN ('"+ o.exclude +"')"; 
+		}
+
+		if ( o.where ) {
+			wherelist << o.where[0]; 
+			o.where[0] = wherelist.join(" AND "); 
+			o.where[1].putAll( wheremap ); 
+		}
+		else {
+			o.where = [wherelist.join(" AND "), wheremap]; 
+		}
+	}
+}

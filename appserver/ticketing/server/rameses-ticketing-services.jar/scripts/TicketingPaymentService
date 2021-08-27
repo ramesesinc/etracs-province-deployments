@@ -1,0 +1,123 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+
+class TicketingPaymentService {
+	
+	@Service('Var')
+	def var;
+
+	@Service('SequenceService')
+	def seqSvc;	
+
+	@Service('TicketingCashReceiptService')
+	def cashReceiptSvc;	
+
+	@DataContext("cashreceipt_terminal")
+	def em_cashreceipt_terminal;
+
+	@DataContext("ticketing_turnstile_category")
+	def em_turnstile_category;
+
+	@DataContext("ticket")
+	def em_ticket;
+
+	@DataContext("ticket_void")
+	def em_ticket_void;
+
+	@ProxyMethod
+	public def postPayment( param ) {
+		if ( !param.objid ) throw new Exception('objid  parameter is required'); 
+		if ( !param.txndate ) throw new Exception('txndate  parameter is required'); 
+		if ( !param.reftype ) throw new Exception('reftype  parameter is required'); 
+		if ( !param.receiptno ) throw new Exception('receiptno  parameter is required'); 
+
+		def info = param.info; 
+		if ( !info ) throw new Exception('info  parameter is required'); 
+
+		info.numadult = toNumber( info.numadult, 0 ); 
+		if ( info.numadult <= 0 ) throw new Exception('Number of adults must be greater than zero'); 
+
+		info.numchildren = Math.max( 0, toNumber( info.numchildren, 0 ));
+		info.numsenior = Math.max( 0, toNumber( info.numsenior, 0 )); 
+		info.numfil = Math.max( 0, toNumber( info.numfil, 0 )); 
+		info.numnonfil = Math.max( 0, toNumber( info.numnonfil, 0 )); 
+
+		info.discount = toNumber( info.discount, 0 ); 
+
+		if ( !info.tag ) throw new Exception('info.tag  parameter is required'); 
+		if ( !info.route?.objid ) throw new Exception('info.route.objid  parameter is required'); 
+
+		def cat = em_turnstile_category.find([ objid: info.tag ]).first(); 
+		if ( !cat ) throw new Exception("'"+ info.tag +"' turnstile category not found"); 
+		if ( !cat?.indexno ) throw new Exception('Please set the category indexno for "'+ info.tag +'"');
+
+		def routeid = info.route.objid;
+		def batchsize = info.numadult; 
+		def prefixyr = param.txndate.toString().split('-')[0][-2..-1];
+		def prefix = routeid + prefixyr + cat.indexno; 
+		int seriesno = seqSvc.getNextBatchSeries([ objid: prefix+'-ticketing', size: batchsize ]); 
+		def startseqno = seqSvc.formatSeries([ seriesno:seriesno, serieslength:6, prefix: prefix ]); 
+		def endseqno = seqSvc.formatSeries([ seriesno:seriesno+batchsize-1, serieslength:6, prefix: prefix ]); 
+
+		def mm = [ 
+			objid: param.objid, dtfiled: param.txndate, 
+			startseqno: startseqno, endseqno: endseqno 
+		]; 
+		mm.putAll( info ); 
+		mm.routeid = routeid;
+		em_cashreceipt_terminal.create( mm ); 
+
+		for ( int idx = 0; idx < batchsize; idx++ ) { 
+			mm = [
+				seqno     : seqSvc.formatSeries([ seriesno:seriesno+idx, serieslength:6, prefix: prefix ]), 
+				barcode   : KeyGen.newProvider().generateAlphanumKey( null, 9 ), 
+				dtfiled   : param.txndate, 
+				refid  	  : param.objid, 
+				refno     : param.receiptno, 
+				reftype   : param.reftype,
+				guesttype : 'A',
+				tag 	  : info.tag  
+			]; 
+			em_ticket.create( mm ); 
+		} 
+
+		return cashReceiptSvc.open([ objid: param.objid ]); 
+	}
+
+
+	@ProxyMethod
+	public void voidPayment( param ) {
+		if ( !param.receiptid ) throw new Exception('param.receiptid  parameter is required'); 
+		if ( !param.txndate ) throw new Exception('param.txndate  parameter is required'); 
+		if ( !param.reason ) throw new Exception('param.reason  parameter is required'); 
+		if ( !param.postedby?.objid ) throw new Exception('param.postedby.objid  parameter is required'); 
+		if ( !param.postedby?.name ) throw new Exception('param.postedby.name  parameter is required'); 
+
+		em_ticket.find([ refid: param.receiptid ]).list().each{ o-> 
+			em_ticket_void.create([ 
+				ticketid: o.objid, 
+				txndate: param.txndate, 
+				reason: param.reason, 
+				postedby: param.postedby
+			]);
+		}
+	}
+
+	@ProxyMethod
+	public void revertVoidPayment( param ) {
+		if ( !param.objid ) throw new Exception('param.objid  parameter is required'); 
+
+		em_ticket.find([ refid: param.objid ]).list().each{ o-> 
+			em_ticket_void.find([ ticketid: o.objid ]).delete(); 
+		} 
+	} 
+
+
+
+	def toNumber( def value, Number defaultValue ) {
+		if ( !value ) return defaultValue; 
+		if ( value instanceof Number ) return value; 
+
+		return new Integer( value.toString());  
+	}
+}

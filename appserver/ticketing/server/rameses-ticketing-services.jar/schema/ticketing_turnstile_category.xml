@@ -1,0 +1,7 @@
+<schema>
+	<element tablename="turnstile_category">
+		<field name="objid" primary="true" prefix="TC" />
+		<field name="title" required="true" caption="Title" searchable="true"/>
+		<field name="indexno" required="true" caption="IndexNo"/>
+	</element> 
+</schema>

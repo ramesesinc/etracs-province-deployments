@@ -1,0 +1,21 @@
+<schema>
+	<element tablename="cashreceipt_terminal">
+		<field name="objid" primary="true"/>
+		<field name="dtfiled" required="true" caption="DateFiled"/>
+		<field name="startseqno" required="true" caption="StartSeqNo"/>
+		<field name="endseqno" required="true" caption="EndSeqNo"/>
+		<field name="numadult" required="true" caption="Adults"/>
+		<field name="numchildren" required="true" caption="Children"/>
+		<field name="numsenior" caption="Seniors"/>
+		<field name="numfil" caption="Filipinos"/>
+		<field name="numnonfil" caption="Non-Filipinos"/>
+		<field name="tag" required="true" caption="Tag"/> 
+		<field name="discount" caption="Discount"/> 
+
+		<field name="routeid" required="true" caption="RouteId"/> 
+
+		<complex name="route" ref="ticketing_terminal" jointype="many-to-one" required="false">
+			<key field="routeid" target="objid" /> 
+		</complex>		
+	</element> 
+</schema>

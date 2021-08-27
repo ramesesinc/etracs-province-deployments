@@ -1,0 +1,10 @@
+<schema>
+	<element tablename="ticket_void">
+		<field name="objid" primary="true" prefix="TKTV"/>
+		<field name="ticketid" required="true" />
+		<field name="txndate" required="true" caption="TxnDate"/>
+		<field name="reason" required="true" caption="Reason" />
+		<field name="postedby_objid" required="true" />
+		<field name="postedby_name" required="true" caption="PostedBy" />
+	</element> 
+</schema>

@@ -1,0 +1,6 @@
+package ticketingbilling;
+
+import com.rameses.rules.common.*;
+import java.util.*;
+
+global RuleAction action;

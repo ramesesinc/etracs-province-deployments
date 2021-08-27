@@ -1,0 +1,41 @@
+import com.rameses.annotations.*;
+import treasury.utils.*;
+import ticketing.facts.*;
+
+class TicketingCashReceiptService {
+	
+	@Service("BillingRuleService")
+	def billRuleSvc;
+
+	@DataContext("ticketing_itemaccount")
+	def itemAcctEm;
+	
+	@ProxyMethod
+	public def getBilling( def o ) { 
+		def totalguest = ( o.numadult ? o.numadult : 0 ) + 
+		                 ( o.numchildren ? o.numchildren : 0 ) + 
+		                 ( o.numsenior ? o.numsenior : 0 ) ; 
+
+		if ( totalguest <= 0 )
+			throw new Exception("There must be at least 1 guest");
+
+		o.numtickets = totalguest; 
+
+		def r = [rulename: "ticketingbilling", params: [txnid: o.txnid], include_items: true ];
+		r.factBuilder = new FactBuilder();
+		r.factBuilder.facts << new TicketInfo( o );
+		
+		def res =  billRuleSvc.execute(r);
+		if ( res.items ) {
+			res.items.each {
+				it.item = itemAcctEm.find([ objid: it.billcode ]).first()?.item; 
+			}
+		}
+
+		def result = [:];
+		result.items = res.items;
+		result.info = o;
+
+		return result;
+	}
+}

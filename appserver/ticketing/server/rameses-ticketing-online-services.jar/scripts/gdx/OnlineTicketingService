@@ -1,0 +1,58 @@
+import com.rameses.annotations.*;
+
+class OnlineTicketingService {
+
+	@Service('DateService')
+	def dtSvc;
+
+	@Service('TicketingCashReceiptService')
+	def cashReceiptSvc; 
+
+
+	@DataContext('ticketing_terminal')
+	def em_terminal;
+
+
+	@ProxyMethod
+	public def getRoutes() { 
+		return em_terminal.find([ state: 'ACTIVE' ]).orderBy('name').list(); 
+	}
+
+	@ProxyMethod
+	public def getBilling( info ) { 
+        // 
+		// Required Parameter Structures: 
+		// 
+		// info = [
+		// 	  route: [ objid: 'x', name: 'x'], 
+		// 	  numadult: 2, 
+		// 	  numchildren: 0, 
+		// 	  numsenior: 0, 
+		// 	  numfil: 0, 
+		// 	  numnonfil: 0, 
+		// 	  tag: 'TOURIST' 
+		// ]; 
+        // 
+
+        if ( !info ) throw new Exception("info  parameter is required in getBilling"); 
+
+        if ( !info.tag ) throw new Exception("info.tag  parameter is requried in getBilling"); 
+
+        def arg0 = [ params: [ info: info ]];
+		def res = cashReceiptSvc.getBilling( arg0 ); 
+
+		def bill = [ items: [], amount: 0.0 ];
+		bill.billdate = dtSvc.serverDate;
+		bill.billno = 'B00121';
+
+		res.billitems.each{
+			bill.items << [ 
+				item: it.item, amount: it.amount, 
+				discount: it.discount, total: it.total 
+			]; 
+			bill.amount += it.total;
+		} 
+
+		return bill;
+	}
+}
