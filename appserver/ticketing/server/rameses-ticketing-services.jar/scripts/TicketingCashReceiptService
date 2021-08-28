@@ -72,18 +72,18 @@ class TicketingCashReceiptService {
 			throw new Exception("info  parameter is required"); 
 
 		info.numadult = toNumber( info.numadult, 0 ); 
-		if ( info.numadult <= 0 ) throw new Exception('Number of adults must be greater than zero'); 
-
 		info.numchildren = Math.max( 0, toNumber( info.numchildren, 0 ));
 		info.numsenior = Math.max( 0, toNumber( info.numsenior, 0 )); 
 		info.numfil = Math.max( 0, toNumber( info.numfil, 0 )); 
 		info.numnonfil = Math.max( 0, toNumber( info.numnonfil, 0 )); 
+		def totaladults = info.numadult + info.numsenior;
+		if (totaladults <= 0) throw new Exception('Number of adults must be greater than zero ' + totaladults);
 
 		info.discount = toNumber( info.discount, 0 ); 
 
-		if ( !info.route?.objid ) throw new Exception('route.objid  parameter is required'); 
+		if ( !info.routes ) throw new Exception('routes  parameter is required'); 
 
-		info.routeid = info.route?.objid; 
+		info.routeid = info.routes[0].objid; 
 
 		if ( !info.tag ) {
 			def collectiontypeid = o.params?.collectiontype?.objid; 

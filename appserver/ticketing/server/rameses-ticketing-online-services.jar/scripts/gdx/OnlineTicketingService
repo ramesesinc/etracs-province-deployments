@@ -1,4 +1,5 @@
 import com.rameses.annotations.*;
+import com.rameses.util.KeyGen;
 
 class OnlineTicketingService {
 
@@ -14,6 +15,9 @@ class OnlineTicketingService {
 
 	@DataContext('ticketing_terminal')
 	def em_terminal;
+
+	@Service('QrCodeInfoService')
+	def qrSvc;
 
 
 	@ProxyMethod
@@ -56,7 +60,7 @@ class OnlineTicketingService {
 
 		def bill = [ items: [], amount: 0.0 ];
 		bill.billdate = billdate; 
-		bill.billno = 'B00121';
+		bill.billno = KeyGen.newProvider().generateAlphanumKey('B', 9 );
 
 		res.billitems.each{
 			bill.items << [ 
@@ -72,15 +76,17 @@ class OnlineTicketingService {
 
 	@ProxyMethod
 	public def verifyPayment( po ) { 
-        if ( !po ) throw new Exception("po  parameter is required in verifyPayment"); 
+		if ( !po ) throw new Exception("po  parameter is required in verifyPayment"); 
         if ( !po.info ) throw new Exception("po.info  parameter is required in verifyPayment"); 
 
-        def param = [:]; 
-        param.info = po.info;
-        param.billdate = po.billdate; 
-
-        def bill = getBilling( param ); 
+        def params = [:]; 
+        params.info = po.info.data;
+        params.billdate = po.billdate; 
+		params.info.tag = po.info.tag ? po.info.tag : 'TOURIST';
+		
+        def bill = cashReceiptSvc.getBilling([params: params]); 
         bill.info = po.info; 
+		bill.amount = po.amount;
         return bill; 
 	} 
 
@@ -98,5 +104,54 @@ class OnlineTicketingService {
 		param.info = bill.info; 
 		
 		paymentSvc.postPayment( param ); 
+	}
+
+	@ProxyMethod
+	public def getEmailAttachments( eor ) {
+		if ( !eor ) throw new Exception("eor  parameter is required in getEmailAttachments"); 
+		def tickets = cashReceiptSvc.open(eor).tickets;
+
+		def attachments = [];
+		tickets.each{
+			def data = [:];
+			data.objid = it.objid;
+			data.seqno = it.seqno;
+			data.barcode = it.barcode;
+			data.dtfiled = it.dtfiled;
+			data.guesttype = it.guesttype;
+			data.refid = it.refid;
+			data.reftype = it.reftype;
+			data.tag = it.tag;
+			data.refno = it.refno;
+
+			//TODO: remove when supported
+			data.terminal = it.terminal ? it.terminal : 'CATICLAN JETTY PORT';
+			data.terminaladdr = it.terminaladdr ? it.terminaladdr : 'Caticlan, Malay, Aklan';
+			data.route = it.route ? it.route : 'CATICLAN - CAGBAN';
+			data.traveldate = it.traveldate ? it.traveldate : dtSvc.serverDate;
+
+			//TODO: uncomment when supported
+			// data.terminal = it.terminal;
+			// data.terminaladdr = it.terminaladdr;
+			// data.route = it.route;
+			// data.traveldate = it.traveldate;
+			
+			data.qrcode = 'qrcode:&data=' + qrSvc.encode(it).data + '&qr=1';
+			data.template = "reports/ticketing/terminalticket"; 
+			attachments << [ 
+				title:  it.barcode + ".pdf", 
+				reportid: "terminalticket", 
+				data: data,
+			] 
+		}
+
+		println 'ATTACHMENTS: ' + attachments;
+        return attachments;
+    }
+
+	void printInfo(caption, data) {
+		println '\n'*3;
+		println caption+'===============';
+		data.each{k,v -> println k + ': ' + v};
 	}
 }
