@@ -11,6 +11,15 @@
 		<field name="refno" caption="RefNo" searchable="true" indexed="true"/>
 		<field name="tag" caption="Tag" />
 
+		<field name="traveldate" caption="TravelDate" />
+		
+		<field name="routeid" required="true" />
+
+		<complex name="route" ref="ticketing_route" jointype="many-to-one" 
+		         required="false" includefields="objid,name,sortorder">
+			<key field="routeid" target="objid" />
+		</complex> 
+
 		<complex name="void" ref="ticket_void" jointype="many-to-one" 
 		         required="false" includefields="objid,txndate,reason">
 			<key field="objid" target="ticketid" />

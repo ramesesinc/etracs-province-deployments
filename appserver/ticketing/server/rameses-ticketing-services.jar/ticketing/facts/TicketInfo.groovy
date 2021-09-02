@@ -23,4 +23,17 @@ class TicketInfo {
 		this.tag = m.tag; 
 		this.routeid = m.routeid;
 	}
+
+
+	public Map toMap() {
+		def m = [:]; 
+		m.numadult = this.numadult; 
+		m.numchildren = this.numchildren; 
+		m.numsenior = this.numsenior;
+		m.numfil = this.numfil; 
+		m.numnonfil = this.numnonfil; 
+		m.tag = this.tag; 
+		m.routeid = this.routeid; 
+		return m; 
+	}
 }

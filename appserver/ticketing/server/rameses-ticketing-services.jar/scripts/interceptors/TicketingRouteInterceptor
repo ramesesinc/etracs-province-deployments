@@ -1,0 +1,24 @@
+import com.rameses.annotations.*;
+
+class TicketingRouteInterceptor { 
+	
+	@Before(pattern="PersistenceService.create", eval="#{ args[0]._schemaname == 'ticketing_route' }")
+	public void beforeCreate( evt ) { 
+		def data = evt.args[0]; 
+		if ( data.state == null ) data.state = 'ACTIVE'; 
+
+		data.originid = data.origin?.objid; 
+		data.destinationid = data.destination?.objid; 
+	} 
+
+	@Before(pattern="PersistenceService.update", eval="#{ args[0]._schemaname == 'ticketing_route' }")
+	public void beforeUpdate( evt ) { 
+		def data = evt.args[0]; 
+		if ( data.origin?.objid ) {
+			data.originid = data.origin.objid; 
+		}
+		if ( data.destination?.objid ) {
+			data.destinationid = data.destination.objid; 
+		}
+	} 	
+}

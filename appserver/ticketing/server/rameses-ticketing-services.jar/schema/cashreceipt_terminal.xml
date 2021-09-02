@@ -11,11 +11,5 @@
 		<field name="numnonfil" caption="Non-Filipinos"/>
 		<field name="tag" required="true" caption="Tag"/> 
 		<field name="discount" caption="Discount"/> 
-
-		<field name="routeid" required="true" caption="RouteId"/> 
-
-		<complex name="route" ref="ticketing_terminal" jointype="many-to-one" required="false">
-			<key field="routeid" target="objid" /> 
-		</complex>		
 	</element> 
 </schema>

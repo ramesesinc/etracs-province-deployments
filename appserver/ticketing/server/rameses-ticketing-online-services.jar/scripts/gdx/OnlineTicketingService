@@ -1,157 +1,18 @@
 import com.rameses.annotations.*;
-import com.rameses.util.KeyGen;
 
 class OnlineTicketingService {
 
-	@Service('DateService')
-	def dtSvc;
-
-	@Service('TicketingCashReceiptService')
-	def cashReceiptSvc; 
-
-	@Service('TicketingPaymentService')
-	def paymentSvc; 
-
-
-	@DataContext('ticketing_terminal')
-	def em_terminal;
-
-	@Service('QrCodeInfoService')
-	def qrSvc;
+	@Service('OnlineTicketingService')
+	def localSvc;
 
 
 	@ProxyMethod
 	public def getRoutes() { 
-		return em_terminal.find([ state: 'ACTIVE' ]).orderBy('name').list(); 
+		return localSvc.getRoutes(); 
 	}
 
 	@ProxyMethod
 	public def getBilling( param ) { 
-        // 
-		// Required Parameter Structures: 
-		// 
-		// param.info = [
-		// 	  route: [ objid: 'x', name: 'x'], 
-		// 	  numadult: 2, 
-		// 	  numchildren: 0, 
-		// 	  numsenior: 0, 
-		// 	  numfil: 0, 
-		// 	  numnonfil: 0, 
-		// 	  tag: 'TOURIST' 
-		// ]; 
-        // 
-
-        if ( !param ) throw new Exception("param  parameter is required in getBilling"); 
-        if ( !param.info ) throw new Exception("param.info  parameter is required in getBilling"); 
-
-        if ( !param.info.tag ) throw new Exception("info.tag  parameter is requried in getBilling"); 
-
-
-        def billdate = param.billdate; 
-        if ( !billdate ) {
-        	billdate = dtSvc.serverDate; 
-        }
-
-        def arg0 = [:]; 
-        arg0.billdate = billdate; 
-        arg0.params = [ info: param.info ];
-
-		def res = cashReceiptSvc.getBilling( arg0 ); 
-
-		def bill = [ items: [], amount: 0.0 ];
-		bill.billdate = billdate; 
-		bill.billno = KeyGen.newProvider().generateAlphanumKey('B', 9 );
-
-		res.billitems.each{
-			bill.items << [ 
-				item: it.item, amount: it.amount, 
-				discount: it.discount, total: it.total 
-			]; 
-			bill.amount += it.total;
-		} 
-
-		return bill;
-	}
-
-
-	@ProxyMethod
-	public def verifyPayment( po ) { 
-		if ( !po ) throw new Exception("po  parameter is required in verifyPayment"); 
-        if ( !po.info ) throw new Exception("po.info  parameter is required in verifyPayment"); 
-
-        def params = [:]; 
-        params.info = po.info.data;
-        params.billdate = po.billdate; 
-		params.info.tag = po.info.tag ? po.info.tag : 'TOURIST';
-		
-        def bill = cashReceiptSvc.getBilling([params: params]); 
-        bill.info = po.info; 
-		bill.amount = po.amount;
-        return bill; 
-	} 
-
-
-	@ProxyMethod
-	public void postPayment( eor, bill ) {
-        if ( !eor ) throw new Exception("eor  parameter is required in postPayment"); 
-        if ( !bill ) throw new Exception("bill  parameter is required in postPayment"); 
-
-		def param = [:]; 
-		param.objid = eor.objid; 
-		param.txndate = eor.txndate;
-		param.reftype = 'eor';
-		param.receiptno = eor.receiptno;
-		param.info = bill.info; 
-		
-		paymentSvc.postPayment( param ); 
-	}
-
-	@ProxyMethod
-	public def getEmailAttachments( eor ) {
-		if ( !eor ) throw new Exception("eor  parameter is required in getEmailAttachments"); 
-		def tickets = cashReceiptSvc.open(eor).tickets;
-
-		def attachments = [];
-		tickets.each{
-			def data = [:];
-			data.objid = it.objid;
-			data.seqno = it.seqno;
-			data.barcode = it.barcode;
-			data.dtfiled = it.dtfiled;
-			data.guesttype = it.guesttype;
-			data.refid = it.refid;
-			data.reftype = it.reftype;
-			data.tag = it.tag;
-			data.refno = it.refno;
-
-			//TODO: remove when supported
-			data.terminal = it.terminal ? it.terminal : 'CATICLAN JETTY PORT';
-			data.terminaladdr = it.terminaladdr ? it.terminaladdr : 'Caticlan, Malay, Aklan';
-			data.route = it.route ? it.route : 'CATICLAN - CAGBAN';
-			data.traveldate = it.traveldate ? it.traveldate : dtSvc.serverDate;
-
-			//TODO: uncomment when supported
-			// data.terminal = it.terminal;
-			// data.terminaladdr = it.terminaladdr;
-			// data.route = it.route;
-			// data.traveldate = it.traveldate;
-			
-			data.qrcode = 'qrcode:&data=' + qrSvc.encode(it).data + '&qr=1';
-			data.template = "reports/ticketing/terminalticket"; 
-			attachments << [ 
-				title:  it.barcode + ".pdf", 
-				reportid: "terminalticket", 
-				data: data,
-			] 
-		}
-
-		println 'ATTACHMENTS: ' + attachments;
-        return attachments;
-    }
-
-	void printInfo(caption, data) {
-		println '\n'*3;
-		println caption+'===============';
-		data.each{k,v -> println k + ': ' + v};
+		return localSvc.getBilling( param ); 
 	}
 }

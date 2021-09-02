@@ -24,15 +24,20 @@ class TicketingPaymentService {
 	@DataContext("ticket_void")
 	def em_ticket_void;
 
+	@DataContext("ticketing_route")
+	def em_route;
+
 	@ProxyMethod
 	public def postPayment( param ) {
 		if ( !param.objid ) throw new Exception('objid  parameter is required'); 
 		if ( !param.txndate ) throw new Exception('txndate  parameter is required'); 
 		if ( !param.reftype ) throw new Exception('reftype  parameter is required'); 
 		if ( !param.receiptno ) throw new Exception('receiptno  parameter is required'); 
+		if ( !param.org?.objid ) throw new Exception('org.objid  parameter is required'); 
 
 		def info = param.info.data; 
-		if ( !info ) throw new Exception('info  parameter is required'); 
+		if ( info == null ) info = param.info; 
+		if ( !info ) throw new Exception('param.info  parameter is required'); 
 
 		info.numadult = toNumber( info.numadult, 0 ); 
 		info.numchildren = Math.max( 0, toNumber( info.numchildren, 0 ));
@@ -52,35 +57,53 @@ class TicketingPaymentService {
 		if ( !cat ) throw new Exception("'"+ info.tag +"' turnstile category not found"); 
 		if ( !cat?.indexno ) throw new Exception('Please set the category indexno for "'+ info.tag +'"');
 
-		info.routes.each{route ->
-			def routeid = route.objid;
-			def batchsize = info.numadult + info.numsenior; 
-			def prefixyr = param.txndate.toString().split('-')[0][-2..-1];
-			def prefix = routeid + prefixyr + cat.indexno; 
-			int seriesno = seqSvc.getNextBatchSeries([ objid: prefix+'-ticketing', size: batchsize ]); 
-			def startseqno = seqSvc.formatSeries([ seriesno:seriesno, serieslength:6, prefix: prefix ]); 
-			def endseqno = seqSvc.formatSeries([ seriesno:seriesno+batchsize-1, serieslength:6, prefix: prefix ]); 
+		info.routes.each{ route->
+			def rr = em_route.find([ objid: route.objid ]).first(); 
+			if ( rr ) { 
+				route.origin = rr.origin; 
+				route.sortorder = rr.sortorder; 
+			} 
+			route.sortorder = toNumber( route.sortorder, 0 ); 
+			route.objid = rr?.objid; 
+		} 
 
-			def mm = [ 
-				objid: param.objid, dtfiled: param.txndate, 
-				startseqno: startseqno, endseqno: endseqno 
-			]; 
-			mm.putAll( info ); 
-			mm.routeid = routeid;
-			em_cashreceipt_terminal.create( mm ); 
+		def routes = info.routes.findAll{( it.objid )}
+		routes.sort{ it.sortorder } 
+
+		def orgid = param.org.objid; 
+		def batchsize = ( info.numadult + info.numsenior ) * routes.size();  
+		def prefixyr = param.txndate.toString().split('-')[0][-2..-1];
+		def prefix = orgid + prefixyr + cat.indexno; 
+		int seriesno = seqSvc.getNextBatchSeries([ objid: prefix+'-ticketing', size: batchsize ]); 
+		def startseqno = seqSvc.formatSeries([ seriesno:seriesno, serieslength:6, prefix: prefix ]); 
+		def endseqno = seqSvc.formatSeries([ seriesno:seriesno+batchsize-1, serieslength:6, prefix: prefix ]); 
+
+		def rct = [:];  
+		rct.putAll( info ); 
+		rct.objid = param.objid; 
+		rct.dtfiled = param.txndate;
+		rct.startseqno = startseqno; 
+		rct.endseqno = endseqno; 
+		em_cashreceipt_terminal.create( rct ); 
+
+		int rownum = 0; 
+		routes.each{ route->
+			batchsize = info.numadult + info.numsenior; 
 
 			for ( int idx = 0; idx < batchsize; idx++ ) { 
-				mm = [
-					seqno     : seqSvc.formatSeries([ seriesno:seriesno+idx, serieslength:6, prefix: prefix ]), 
+				def mm = [
+					seqno     : seqSvc.formatSeries([ seriesno:seriesno+rownum, serieslength:6, prefix: prefix ]), 
 					barcode   : KeyGen.newProvider().generateAlphanumKey( null, 9 ), 
 					dtfiled   : param.txndate, 
 					refid  	  : param.objid, 
 					refno     : param.receiptno, 
 					reftype   : param.reftype,
 					guesttype : 'A',
-					tag 	  : info.tag  
+					tag 	  : info.tag, 
+					routeid   : route.objid 
 				]; 
 				em_ticket.create( mm ); 
+				rownum++;
 			} 
 		}
 

@@ -15,8 +15,8 @@ class TicketingCashReceiptService {
 	def billingSvc;
 
 
-	@DataContext("ticketing_terminal")
-	def em_terminal;
+	@DataContext("ticketing_route")
+	def em_route;
 
 	@DataContext("cashreceipt_terminal")
 	def em_cashreceipt_terminal; 
@@ -33,16 +33,16 @@ class TicketingCashReceiptService {
 		if ( !param.org?.objid )
 			throw new Exception('org.objid  parameter is required in TicketingCashReceiptService'); 
 
-		def route = em_terminal.find([ objid: param.org.objid ]).first(); 
+		def route = em_route.find([ originid: param.org.objid.toString() ]).orderBy('sortorder,name').first(); 
 		if ( !route ) 
-			throw new Exception("Please register the Org "+ param.org.objid +" in the Ticketing Terminal"); 
+			throw new Exception("Please register route for Org "+ param.org.objid); 
 
 		def res = [:]; 
 		res.route = route; 
 		res.paidby = 'TOURIST'; 
 
         def addr = var.get('collection_default_address'); 
-        res.paidbyaddress = (addr ? addr : route.address); 
+        res.paidbyaddress = (addr ? addr : route.origin?.address); 
 		return res; 
 	}
 
@@ -69,8 +69,10 @@ class TicketingCashReceiptService {
 	public def getBilling( def o ) {
 		def info = o.params?.info;
 		if ( info == null ) 
-			throw new Exception("info  parameter is required"); 
+			throw new Exception("info  parameter is required in getBilling"); 
 
+		if ( !info.routes ) throw new Exception('info.routes  parameter is required in getBilling'); 
+        
 		info.numadult = toNumber( info.numadult, 0 ); 
 		info.numchildren = Math.max( 0, toNumber( info.numchildren, 0 ));
 		info.numsenior = Math.max( 0, toNumber( info.numsenior, 0 )); 
@@ -80,10 +82,6 @@ class TicketingCashReceiptService {
 		if (totaladults <= 0) throw new Exception('Number of adults must be greater than zero ' + totaladults);
 
 		info.discount = toNumber( info.discount, 0 ); 
-
-		if ( !info.routes ) throw new Exception('routes  parameter is required'); 
-
-		info.routeid = info.routes[0].objid; 
 
 		if ( !info.tag ) {
 			def collectiontypeid = o.params?.collectiontype?.objid; 
@@ -96,6 +94,9 @@ class TicketingCashReceiptService {
 				if ( cta ) info.tag = cta.tag; 
 			}
 		}
+
+
+		info.routes = em_route.where('1=1').orderBy('sortorder,name').list();
 
 		def res = billingSvc.getBilling( info );
 		res.billitems = res.items;
