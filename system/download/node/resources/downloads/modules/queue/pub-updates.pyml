@@ -1,0 +1,6 @@
+app:
+
+   env:
+
+   modules:
+      - { order: 260, version: 2.02, file: "modules/queue/rameses-queueing.jar" }
