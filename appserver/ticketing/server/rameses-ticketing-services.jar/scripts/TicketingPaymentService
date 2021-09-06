@@ -100,7 +100,8 @@ class TicketingPaymentService {
 					reftype   : param.reftype,
 					guesttype : 'A',
 					tag 	  : info.tag, 
-					routeid   : route.objid 
+					routeid   : route.objid, 
+					traveldate: route.traveldate 
 				]; 
 				em_ticket.create( mm ); 
 				rownum++;

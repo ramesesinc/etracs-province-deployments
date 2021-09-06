@@ -96,8 +96,6 @@ class TicketingCashReceiptService {
 		}
 
 
-		info.routes = em_route.where('1=1').orderBy('sortorder,name').list();
-
 		def res = billingSvc.getBilling( info );
 		res.billitems = res.items;
 		return res;
