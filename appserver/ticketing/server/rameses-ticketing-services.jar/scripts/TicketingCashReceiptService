@@ -21,8 +21,8 @@ class TicketingCashReceiptService {
 	@DataContext("cashreceipt_terminal")
 	def em_cashreceipt_terminal; 
 
-	@DataContext("ticket")
-	def em_ticket; 
+	@DataContext("vw_ticketing_ticket")
+	def vw_ticketing_ticket; 
 
 	@DataContext("vw_ticketing_ticket_void")
 	def vw_ticketing_ticket_void; 
@@ -58,7 +58,7 @@ class TicketingCashReceiptService {
 
 		def voided = vw_ticketing_ticket_void.find([ refid: receiptid ]).first(); 
 		if ( !voided ) { 
-			result.tickets = em_ticket.find([ refid: receiptid ]).orderBy('seqno').list(); 
+			result.tickets = vw_ticketing_ticket.find([ refid: receiptid ]).orderBy('seqno').list(); 
 		}
 
 		return result; 

@@ -10,6 +10,13 @@
 		<field name="reftype" caption="RefType" />
 		<field name="refno" caption="RefNo" searchable="true" indexed="true"/>
 		<field name="tag" caption="Tag" />
+		<field name="routeid" />
+		<field name="route_objid" />
+		<field name="route_name" caption="Route" />
+		<field name="route_sortorder" />
+		<field name="route_origin_objid" />
+		<field name="route_origin_name" caption="Origin" />
+		<field name="route_origin_address" caption="Address" />
 		<field name="voided" caption="Voided" />
 		<field name="void_objid" />
 		<field name="void_txndate" caption="DateVoid"/>
