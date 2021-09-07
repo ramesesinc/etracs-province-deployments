@@ -93,7 +93,7 @@ class OnlineTicketingService {
         if ( !po.info ) throw new Exception("po.info  parameter is required in verifyPayment"); 
 
         def params = [:]; 
-        params.info = po.info.data;
+        params.info = po.info;
         params.billdate = po.billdate; 
 		params.info.tag = ( po.info.tag ? po.info.tag : 'TOURIST' );
 		
@@ -138,17 +138,10 @@ class OnlineTicketingService {
 			data.tag = it.tag;
 			data.refno = it.refno;
 
-			//TODO: remove when supported
-			data.terminal = it.terminal ? it.terminal : 'CATICLAN JETTY PORT';
-			data.terminaladdr = it.terminaladdr ? it.terminaladdr : 'Caticlan, Malay, Aklan';
-			data.route = it.route ? it.route : 'CATICLAN - CAGBAN';
-			data.traveldate = it.traveldate ? it.traveldate : dtSvc.serverDate;
-
-			//TODO: uncomment when supported
-			// data.terminal = it.terminal;
-			// data.terminaladdr = it.terminaladdr;
-			// data.route = it.route;
-			// data.traveldate = it.traveldate;
+			data.terminal = it.route.origin.name;
+			data.terminaladdr = it.route.origin.address;
+			data.route = it.route.name;
+			data.traveldate = it.traveldate;
 			
 			data.qrcode = 'qrcode:&data=' + qrSvc.encode(it).data + '&qr=1';
 			data.template = "reports/ticketing/terminalticket"; 

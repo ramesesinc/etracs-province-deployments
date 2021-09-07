@@ -7,7 +7,7 @@ class OnlineTicketingService {
 
 
 	@ProxyMethod
-	public def getRoutes() { 
+	public def getRoutes(param) { 
 		return localSvc.getRoutes(); 
 	}
 
