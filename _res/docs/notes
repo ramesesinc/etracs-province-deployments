@@ -25,7 +25,7 @@ Pass : p@ssw0rd
 [Samba]
 URL  : \\localhost
 User : 
-Pass : 
+Pass : p@ssw0rd
 
 
 [DockerHub Images]
@@ -37,8 +37,8 @@ docker pull ramesesinc/gdx-proxy-server:v002
 docker pull ramesesinc/gdx-client:1.03.01
 docker pull ramesesinc/etracs-web:2.5.02.01
 docker pull ramesesinc/node-download-server:0.0.3
-docker pull ramesesinc/etracs-server-province:2.5.04.01.01
 docker pull ramesesinc/local-epayment-server:2.5.01.02.06
+docker pull ramesesinc/etracs-server-province:2.5.04.03.01
 
 
 [GitHub]
