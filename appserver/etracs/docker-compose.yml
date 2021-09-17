@@ -3,7 +3,7 @@ version: "3"
 services:
   etracs-server:
     container_name: etracs-server
-    image: ramesesinc/etracs-server-province:2.5.04.02.01
+    image: ramesesinc/etracs-server-province:2.5.04.03.01
     restart: always
     logging:
       driver: "json-file"
