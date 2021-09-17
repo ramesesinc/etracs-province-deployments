@@ -1,0 +1,10 @@
+app:
+
+  env:
+    "entity.app.host" : "${pub_app_server_ip}:8070"
+    "entity.app.context" : "etracs25"
+
+  modules:
+    - { order: 210, version: 2.02, file: "modules/entity/rameses-enterprise-entity.jar" }
+    - { order: 211, version: 2.02, file: "modules/entity/rameses-enterprise-entity-tool.jar" }
+    - { order: 212, version: 2.02, file: "modules/entity/rameses-gov-etracs-entity.jar" }
