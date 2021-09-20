@@ -4,11 +4,11 @@ app:
 
    modules:
       - { order: 100, version: 2.01, file: "modules/core/osiris2-client-themes.jar" }
-      - { order: 101, version: 2.01, file: "modules/core/osiris2-client-ui.jar" }
+      - { order: 101, version: 2.02, file: "modules/core/osiris2-client-ui.jar" }
       - { order: 102, version: 2.01, file: "modules/core/osiris2-draw.jar" }
       - { order: 103, version: 2.01, file: "modules/core/osiris2-framework.jar" }
       - { order: 104, version: 2.02, file: "modules/core/osiris2-report.jar" }
-      - { order: 105, version: 2.01, file: "modules/core/rameses-client-ui.jar" }
+      - { order: 105, version: 2.02, file: "modules/core/rameses-client-ui.jar" }
       - { order: 106, version: 2.01, file: "modules/core/rameses-client-ui-bio.jar" }
       - { order: 107, version: 2.01, file: "modules/core/rameses-client-ui-jfx.jar" }
       - { order: 108, version: 2.01, file: "modules/core/rameses-client-notification-socketio.jar" }
