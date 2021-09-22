@@ -3,7 +3,7 @@ version: "3"
 services:
   etracs-server:
     container_name: etracs-server
-    image: ramesesinc/etracs-server-province:2.5.04.01.01
+    image: ramesesinc/etracs-server-province:2.5.04.03.01
     restart: always
     logging:
       driver: "json-file"
@@ -29,3 +29,6 @@ services:
 
       - ../../_custom/output:/apps/server/output
       - ../../_custom/fileserver:/fileserver
+
+      ## temporarily mounting a blank folder to disable old sync services
+      - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
