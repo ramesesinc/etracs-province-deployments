@@ -3,5 +3,5 @@
 #----------------------------------------
 provider=node-script
 host=${cloud_server_ip}:3000
-channel=000
+channel=${channel}
 timeout=60000
