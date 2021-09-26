@@ -57,6 +57,10 @@ go
 
 
 
+-- ## 2021-09-24
 
--- ## 2021-09-16
+INSERT INTO sys_var (name, value, description, datatype, category) 
+VALUES ('CASHBOOK_CERTIFIED_BY_NAME', NULL, 'Cashbook Report Certified By Name', 'text', 'REPORT');
 
+INSERT INTO sys_var (name, value, description, datatype, category) 
+VALUES ('CASHBOOK_CERTIFIED_BY_TITLE', NULL, 'Cashbook Report Certified By Title', 'text', 'REPORT');
