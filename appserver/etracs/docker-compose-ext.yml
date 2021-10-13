@@ -3,3 +3,5 @@ version: "3"
 services:
 
    etracs-server:
+      volumes:
+         - ./dev_modules/rules:/services/modules/rules
