@@ -3,3 +3,4 @@ version: "3"
 services:
 
    etracs-server:
+      - ./dev-modules/rptis/rameses-gov-etracs-rptis-landtax-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-landtax-report-services.jar
