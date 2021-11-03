@@ -1,0 +1,12 @@
+import com.rameses.annotations.*;
+
+public class OnlineRemoteMessageService {
+	@Service('RemoteMessageService')
+	def svc 
+
+	@ProxyMethod
+	public def onMessage(param) {
+		return svc.onMessage(param);
+	}
+
+}
