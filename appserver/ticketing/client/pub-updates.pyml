@@ -1,7 +1,7 @@
 app:
 
   env:
-    "ticketing.app.host" : "${app_server_ip}:8075"
+    "ticketing.app.host" : "${pub_app_server_ip}:8075"
     "ticketing.app.context" : "enterprise"
 
   modules:
