@@ -8,4 +8,4 @@ app:
       - { order: 222, version: 2.06, file: "modules/treasury/rameses-gov-treasury.jar" }
       - { order: 223, version: 2.05, file: "modules/treasury/rameses-gov-treasury-report.jar" }
       - { order: 224, version: 2.03, file: "modules/treasury/rameses-gov-treasury-tool.jar" }
-      - { order: 224, version: 2.01, file: "modules/treasury/rameses-gov-treasury-monitoring.jar" }
+      - { order: 224, version: 2.02, file: "modules/treasury/rameses-gov-treasury-monitoring.jar" }
