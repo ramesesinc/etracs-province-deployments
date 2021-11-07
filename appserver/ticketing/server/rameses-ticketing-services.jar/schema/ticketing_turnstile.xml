@@ -1,0 +1,13 @@
+<schema>
+	<element tablename="turnstile">
+		<field name="objid" primary="true" caption="ID" visible="true" searchable="true"/>
+		<field name="state" required="true" caption="Status"/>
+		<field name="dtfiled" required="true" caption="DateFiled" indexed="true"/>
+		<field name="createdby_objid" required="true"/>
+		<field name="createdby_name" required="true" caption="CreatedBy" indexed="true"/>
+		<field name="title" required="true" caption="Title" searchable="true"/> 
+		<field name="location" caption="Location"/> 
+
+		<field name="tags" caption="Tags" expr="''"/> 
+	</element> 
+</schema>

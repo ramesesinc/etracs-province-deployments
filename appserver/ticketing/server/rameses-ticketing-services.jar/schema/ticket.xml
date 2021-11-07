@@ -1,0 +1,28 @@
+<schema>
+	<element tablename="ticket">
+		<field name="objid" primary="true" prefix="TKT"/>
+		<field name="seqno" required="true" caption="SeqNo" searchable="true" indexed="true"/>
+		<field name="barcode" required="true" caption="Barcode" searchable="true" indexed="true"/>
+		<field name="dtfiled" required="true" caption="DateFiled" indexed="true"/>
+		<field name="dtused" caption="DateConsumed" /> 
+		<field name="guesttype" required="true" />
+		<field name="refid" required="true" />
+		<field name="reftype" required="true" caption="RefType" />
+		<field name="refno" caption="RefNo" searchable="true" indexed="true"/>
+		<field name="tag" caption="Tag" />
+
+		<field name="traveldate" caption="TravelDate" />
+		
+		<field name="routeid" required="true" />
+
+		<complex name="route" ref="ticketing_route" jointype="many-to-one" 
+		         required="false" includefields="objid,name,sortorder">
+			<key field="routeid" target="objid" />
+		</complex> 
+
+		<complex name="void" ref="ticket_void" jointype="many-to-one" 
+		         required="false" includefields="objid,txndate,reason">
+			<key field="objid" target="ticketid" />
+		</complex> 
+	</element>
+</schema>

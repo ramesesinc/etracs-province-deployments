@@ -1,0 +1,17 @@
+<schema>
+	<element tablename="route">
+		<field name="objid" primary="true" prefix="ROUTE"/>
+		<field name="state" required="true" caption="State"/>
+		<field name="name" required="true" caption="Title"/>
+		<field name="sortorder" required="true" caption="SortOrder"/>
+		<field name="originid" required="true" />
+		<field name="destinationid" />
+
+		<complex name="origin" ref="ticketing_terminal" jointype="many-to-one" required="false" includefields="objid,name,address">
+			<key field="originid" target="objid" /> 
+		</complex>				
+		<complex name="destination" ref="ticketing_terminal" jointype="many-to-one" required="false" includefields="objid,name,address">
+			<key field="destinationid" target="objid" /> 
+		</complex>				
+	</element> 
+</schema>

@@ -1,0 +1,164 @@
+import com.rameses.annotations.*;
+import com.rameses.util.KeyGen;
+
+class OnlineTicketingService {
+
+	@Service('DateService')
+	def dtSvc;
+
+	@Service('TicketingCashReceiptService')
+	def cashReceiptSvc; 
+
+	@Service('TicketingPaymentService')
+	def paymentSvc; 
+
+
+	@DataContext('ticketing_route')
+	def em_route;
+
+	@Service('QrCodeInfoService')
+	def qrSvc;
+
+
+	@ProxyMethod
+	public def getRoutes() { 
+		return em_route.find([ state: 'ACTIVE' ]).orderBy('sortorder,name').list(); 
+	}
+
+	@ProxyMethod
+	public def getBilling( param ) { 
+        // 
+		// Required Parameter Structures: 
+		// 
+		// param.info = [
+		// 	  tag: 'TOURIST', 
+		// 	  numadult: 2, 
+		// 	  numchildren: 0, 
+		// 	  numsenior: 0, 
+		// 	  numfil: 0, 
+		// 	  numnonfil: 0, 
+		// 	  routes: [  
+		// 	     [ objid: 'x', name: 'x'], 
+		// 	     [ objid: 'x', name: 'x']
+		// 	  ]
+		// ]; 
+        // 
+
+        if ( !param ) throw new Exception("param  parameter is required in getBilling"); 
+        if ( !param.info ) throw new Exception("param.info  parameter is required in getBilling"); 
+
+        println '\n*** getBilling'
+        param.each{
+        	println '> '+ it;
+        }
+
+        if ( !param.info.routes ) throw new Exception("param.info.routes  parameter is requried in getBilling"); 
+
+        if ( !param.info.tag ) { 
+        	param.info.tag = 'TOURIST'; 
+        }
+
+        def billdate = param.billdate; 
+        if ( !billdate ) {
+        	billdate = dtSvc.serverDate; 
+        }
+
+        def arg0 = [:]; 
+        arg0.billdate = billdate; 
+        arg0.params = [ info: param.info ];
+
+		def res = cashReceiptSvc.getBilling( arg0 ); 
+
+		def bill = [ items: [], amount: 0.0 ];
+		bill.billdate = billdate; 
+		bill.billno = KeyGen.newProvider().generateAlphanumKey('TKT', 9 );
+
+		res.billitems.each{
+			bill.items << [ 
+				item: it.item, amount: it.amount, 
+				discount: it.discount, total: it.total 
+			]; 
+			bill.amount += it.total;
+		} 
+
+		if ( !bill.amount ) throw new Exception('Bill amount must be greater than zero');
+
+		return bill;
+	}
+
+
+	@ProxyMethod
+	public def verifyPayment( po ) { 
+		if ( !po ) throw new Exception("po  parameter is required in verifyPayment"); 
+        if ( !po.info ) throw new Exception("po.info  parameter is required in verifyPayment"); 
+
+        def params = [:]; 
+        params.info = po.info;
+        params.billdate = po.billdate; 
+		params.info.tag = ( po.info.tag ? po.info.tag : 'TOURIST' );
+		
+        def bill = cashReceiptSvc.getBilling([ params: params ]); 
+		bill.amount = po.amount; 
+        bill.info = po.info; 
+        return bill; 
+	} 
+
+
+	@ProxyMethod
+	public void postPayment( eor, bill ) {
+        if ( !eor ) throw new Exception("eor  parameter is required in postPayment"); 
+        if ( !bill ) throw new Exception("bill  parameter is required in postPayment"); 
+
+		def param = [:]; 
+		param.objid = eor.objid; 
+		param.txndate = eor.txndate;
+		param.reftype = 'eor';
+		param.receiptno = eor.receiptno;
+		param.org = [ objid: eor.paymentorder?.locationid ]; 
+		param.info = bill.info; 
+
+		paymentSvc.postPayment( param ); 
+	}
+
+	@ProxyMethod
+	public def getEmailAttachments( eor ) {
+		if ( !eor ) throw new Exception("eor  parameter is required in getEmailAttachments"); 
+		def tickets = cashReceiptSvc.open(eor).tickets;
+
+		def attachments = [];
+		tickets.each{
+			def data = [:];
+			data.objid = it.objid;
+			data.seqno = it.seqno;
+			data.barcode = it.barcode;
+			data.dtfiled = it.dtfiled;
+			data.guesttype = it.guesttype;
+			data.refid = it.refid;
+			data.reftype = it.reftype;
+			data.tag = it.tag;
+			data.refno = it.refno;
+
+			data.terminal = it.route.origin.name;
+			data.terminaladdr = it.route.origin.address;
+			data.route = it.route.name;
+			data.traveldate = it.traveldate;
+			
+			data.qrcode = 'qrcode:&data=' + qrSvc.encode(it).data + '&qr=1';
+			data.template = "reports/ticketing/terminalticket"; 
+			attachments << [ 
+				title:  it.barcode + ".pdf", 
+				reportid: "terminalticket", 
+				data: data,
+			] 
+		}
+
+		println 'ATTACHMENTS: ' + attachments;
+        return attachments;
+    }
+
+	void printInfo(caption, data) {
+		println '\n'*3;
+		println caption+'===============';
+		data.each{k,v -> println k + ': ' + v};
+	}
+}

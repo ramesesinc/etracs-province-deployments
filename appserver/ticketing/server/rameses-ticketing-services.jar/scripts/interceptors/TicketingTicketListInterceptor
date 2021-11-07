@@ -1,0 +1,64 @@
+import com.rameses.annotations.*;
+
+class TicketingTicketListInterceptor { 
+	
+	@After(pattern="QueryService.getNodeList", eval="#{ args[0]._schemaname == 'vw_ticketing_ticket' }")
+	public void afterGetNodeList( evt ) { 
+		def result = evt.result; 
+		result << [ id:'open', title: 'Open', _schemaname: 'vw_ticketing_ticket'];
+		result << [ id:'consumed', title: 'Consumed', _schemaname: 'vw_ticketing_ticket'];
+		result << [ id:'voided', title: 'Voided', _schemaname: 'vw_ticketing_ticket_void'];
+	}
+
+	@Before(pattern="QueryService.getList", eval="#{ args[0]._schemaname == 'vw_ticketing_ticket' }")
+	public void beforeGetList( evt ) {
+		beforeGetListImpl( evt ); 
+	} 
+
+	@Before(pattern="QueryService.getList", eval="#{ args[0]._schemaname == 'vw_ticketing_ticket_void' }")
+	public void beforeGetListVoid( evt ) { 
+		beforeGetListImpl( evt ); 
+	} 
+
+	void beforeGetListImpl( evt ) {
+		def o = evt.args[0];
+
+		def orderlist = [];
+		def wherelist = [];
+		def wheremap  = [:]; 
+
+		def nodeid = o.node?.id.toString();
+		if ( nodeid == 'open' ) {
+			wherelist << "void.objid IS NULL"; 
+		}
+		else if ( nodeid == 'consumed' ) {
+			wherelist << "dtused IS NOT NULL"; 
+		}
+		else if ( nodeid == 'voided' ) {
+		}
+
+		if ( o.exclude instanceof List && o.exclude ) {
+			wherelist << "objid NOT IN ("+ o.exclude.collect{( "'"+ it +"'" )}.join(",") +")"; 
+		} 
+		else if ( o.exclude instanceof Map && o.exclude.objid ) {
+			wherelist << "objid NOT IN ('"+ o.exclude.objid +"')"; 
+		}
+		else if ( o.exclude instanceof String ) {
+			wherelist << "objid NOT IN ('"+ o.exclude +"')"; 
+		}
+
+		if ( o.where ) {
+			wherelist << o.where[0]; 
+			o.where[0] = wherelist.join(" AND "); 
+			o.where[1].putAll( wheremap ); 
+		}
+		else {
+			o.where = [wherelist.join(" AND "), wheremap]; 
+		} 
+
+		if ( o.orderBy ) {
+			orderlist << o.orderBy; 
+		}
+		o.orderBy = orderlist.join(', '); 
+	}
+}

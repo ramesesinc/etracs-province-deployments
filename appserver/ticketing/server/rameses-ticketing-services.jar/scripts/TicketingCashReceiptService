@@ -1,0 +1,123 @@
+import com.rameses.annotations.*;
+
+class TicketingCashReceiptService {
+	
+	@Service( dynamic=true )
+	def dynamicSvc; 
+
+	@Service('Var')
+	def var;
+
+	@Service('LogService')
+	def logSvc;
+
+	@Service("TicketingBillingService")
+	def billingSvc;
+
+
+	@DataContext("ticketing_route")
+	def em_route;
+
+	@DataContext("cashreceipt_terminal")
+	def em_cashreceipt_terminal; 
+
+	@DataContext("vw_ticketing_ticket")
+	def vw_ticketing_ticket; 
+
+	@DataContext("vw_ticketing_ticket_void")
+	def vw_ticketing_ticket_void; 
+
+
+	@ProxyMethod
+	public def init( param ) {
+		if ( !param.org?.objid )
+			throw new Exception('org.objid  parameter is required in TicketingCashReceiptService'); 
+
+		def route = em_route.find([ originid: param.org.objid.toString() ]).orderBy('sortorder,name').first(); 
+		if ( !route ) 
+			throw new Exception("Please register route for Org "+ param.org.objid); 
+
+		def res = [:]; 
+		res.route = route; 
+		res.paidby = 'TOURIST'; 
+
+        def addr = var.get('collection_default_address'); 
+        res.paidbyaddress = (addr ? addr : route.origin?.address); 
+		return res; 
+	}
+
+	@ProxyMethod
+	public def open( param ) {
+		def receiptid = param.objid.toString(); 
+
+		def result = [:]; 
+		result.lguname = var.lgu_name; 
+		result.thermalprintername = var.thermal_printername; 
+
+		result.info = em_cashreceipt_terminal.find([ objid: receiptid ]).first(); 
+
+		def voided = vw_ticketing_ticket_void.find([ refid: receiptid ]).first(); 
+		if ( !voided ) { 
+			result.tickets = vw_ticketing_ticket.find([ refid: receiptid ]).orderBy('seqno').list(); 
+		}
+
+		return result; 
+	} 
+
+
+	@ProxyMethod
+	public def getBilling( def o ) {
+		def info = o.params?.info;
+		if ( info == null ) 
+			throw new Exception("info  parameter is required in getBilling"); 
+
+		if ( !info.routes ) throw new Exception('info.routes  parameter is required in getBilling'); 
+        
+		info.numadult = toNumber( info.numadult, 0 ); 
+		info.numchildren = Math.max( 0, toNumber( info.numchildren, 0 ));
+		info.numsenior = Math.max( 0, toNumber( info.numsenior, 0 )); 
+		info.numfil = Math.max( 0, toNumber( info.numfil, 0 )); 
+		info.numnonfil = Math.max( 0, toNumber( info.numnonfil, 0 )); 
+		def totaladults = info.numadult + info.numsenior;
+		if (totaladults <= 0) throw new Exception('Number of adults must be greater than zero ' + totaladults);
+
+		info.discount = toNumber( info.discount, 0 ); 
+
+		if ( !info.tag ) {
+			def collectiontypeid = o.params?.collectiontype?.objid; 
+			if ( collectiontypeid ) {
+				def pp = [ _schemaname: 'collectiontype_account', select: 'objid,tag' ];
+				pp.where = ['collectiontypeid = :collectiontypeid AND tag IS NOT NULL', [collectiontypeid : collectiontypeid]]; 
+
+				def svc = dynamicSvc.lookup('QueryService', 'treasury'); 
+				def results = svc.getList( pp ); 
+				def cta = (results ? results.first() : null); 
+				if ( cta ) info.tag = cta.tag; 
+			}
+		}
+
+
+		def res = billingSvc.getBilling( info );
+		res.billitems = res.items;
+		return res;
+	}
+
+
+	@ProxyMethod
+	public void log( param ) { 
+		if ( !param.action ) throw new Exception('action  parameter is required'); 
+		if ( !param.ref ) throw new Exception('ref  parameter is required'); 
+		if ( !param.refid ) throw new Exception('refid  parameter is required'); 
+		if ( !param.remarks ) throw new Exception('remarks  parameter is required'); 
+
+		logSvc.logA( param.action, param.ref, param.refid, param.remarks ); 
+	} 
+
+
+	def toNumber( def value, Number defaultValue ) {
+		if ( !value ) return defaultValue; 
+		if ( value instanceof Number ) return value; 
+
+		return new Integer( value.toString());  
+	}	
+}

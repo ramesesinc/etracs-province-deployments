@@ -1,0 +1,8 @@
+<schema>
+	<element tablename="terminal">
+		<field name="objid" primary="true" caption="Code" visible="true"/>
+		<field name="state" required="true" caption="State"/>
+		<field name="name" required="true" caption="Name" searchable="true" indexed="true"/>
+		<field name="address" required="true" caption="Address"/>
+	</element> 
+</schema>

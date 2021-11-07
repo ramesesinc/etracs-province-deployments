@@ -1,0 +1,33 @@
+import com.rameses.annotations.*;
+
+class TicketingCashReceiptInterceptor { 
+	
+	@DataContext('collectiontype_account')
+	def collectiontype_account; 
+
+	@Service(value='TicketingCashReceiptService', connection='ticketing')
+	def cashReceiptSvc; 
+
+	@After(pattern="CashReceiptService.init", index=500, eval="#{result.collectiontype.handler == 'ticketing'}")
+	public void afterInit( evt ) { 
+		def result = evt.result; 
+		
+		def collectiontypeid = result.collectiontype?.objid; 
+		if ( collectiontypeid ) {
+			def wheres = ['collectiontypeid = :collectiontypeid AND tag IS NOT NULL', [collectiontypeid : collectiontypeid]]; 
+			def cta = collectiontype_account.select('objid,tag').where( wheres[0], wheres[1] ).first(); 
+			result.tag = cta?.tag; 
+		} 
+
+		def xres = cashReceiptSvc.init( result ); 
+		if ( xres ) result.putAll( xres ); 
+	} 
+
+	@After(pattern="PersistenceService.read", index=500, eval="#{args[0]._schemaname == 'cashreceipt' && result.collectiontype?.handler == 'ticketing'}")
+	public void afterRead( evt ) { 
+		def result = evt.result; 
+
+		def xres = cashReceiptSvc.open( result ); 
+		if ( xres ) result.putAll( xres ); 
+	} 
+}

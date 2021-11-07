@@ -1,0 +1,24 @@
+import com.rameses.annotations.*;
+
+class TicketingRouteService {
+
+	@DataContext('ticketing_route') 
+	def em_route; 
+
+
+	@ProxyMethod 
+	public def activate( param ) { 
+		return changeState( param.objid, 'ACTIVE' ); 
+	} 
+
+	@ProxyMethod 
+	public def deactivate( param ) { 
+		return changeState( param.objid, 'INACTIVE' ); 
+	} 
+
+	def changeState( objid, state ) { 
+		def findby = [ objid: objid.toString() ]; 
+		em_route.find( findby ).update([ state: state ]); 
+		return em_route.find( findby ).select('objid,state').first(); 
+	} 
+} 

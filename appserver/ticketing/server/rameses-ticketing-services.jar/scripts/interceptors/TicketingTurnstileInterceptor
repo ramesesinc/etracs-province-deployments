@@ -1,0 +1,65 @@
+import com.rameses.annotations.*;
+
+class TicketingTurnstileInterceptor { 
+	
+	@DataContext('ticketing_turnstile') 
+	def turnstile; 
+
+	@DataContext('ticketing_turnstile_item') 
+	def turnstile_item; 
+
+	@Service('DateService')
+	def dateSvc; 
+
+
+	@Before(pattern="PersistenceService.create", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void beforeCreate( evt ) { 
+		def data = evt.args[0]; 
+		data.dtfiled = dateSvc.getServerDate().toString(); 
+		if ( data.state == null ) data.state = 'ACTIVE'; 
+	} 
+
+	@After(pattern="PersistenceService.create", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void afterCreate( evt ) { 
+		def data = evt.result;
+		if ( data?.objid ) {
+			insertCategories( data );
+		}
+	} 
+
+	@After(pattern="PersistenceService.update", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void afterUpdate( evt ) { 
+		def data = evt.result;
+		if ( data?.objid ) {
+			insertCategories( data );
+		}
+	} 
+
+	@After(pattern="PersistenceService.read", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void afterRead( evt ) { 
+		def data = evt.result;
+		if ( data?.objid ) { 
+			data.categories = turnstile_item.getCategories([ turnstileid: data.objid ]); 
+		}
+	} 
+
+
+	@Before(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'ticketing_turnstile' }")
+	public void beforeRemoveEntity( evt ) { 
+		def data = evt.args[0]; 
+		def uu = [ state: 'CANCELLED' ]; 
+		turnstile.find([ objid: data.objid.toString() ]).update( uu ); 
+		data.objid = data.objid.toString() +'-'+ uu.state;
+	} 
+
+
+	void insertCategories( data ) {
+		turnstile_item.removeTurnstile([ turnstileid: data.objid ]);
+		data.categories?.each{o-> 
+			o.categoryid = o.objid; 
+			o.turnstileid = data.objid; 
+			turnstile_item.create( o ); 
+		} 
+	}
+
+}

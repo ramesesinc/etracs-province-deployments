@@ -1,0 +1,18 @@
+import com.rameses.annotations.*;
+
+class OnlineTicketingService {
+
+	@Service('OnlineTicketingService')
+	def localSvc;
+
+
+	@ProxyMethod
+	public def getRoutes(param) { 
+		return localSvc.getRoutes(); 
+	}
+
+	@ProxyMethod
+	public def getBilling( param ) { 
+		return localSvc.getBilling( param ); 
+	}
+}
