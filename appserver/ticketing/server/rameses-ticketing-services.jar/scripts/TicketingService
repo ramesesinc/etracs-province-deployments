@@ -3,14 +3,25 @@ import com.rameses.util.*;
 
 class TicketingService {
 
+	final String VAR_QR_TICKET_ROUTE_ID = 'qr_ticket_route_id'; 
+
+	@DataContext('var')
+	def em_var; 
+
+	@DataContext('ticketing_route')
+	def em_route; 
+
 	@DataContext('ticket')
-	def ticket; 
+	def em_ticket; 
 
 	@DataContext('ticketing_turnstile_item')
-	def turnstile_item; 
+	def em_turnstile_item; 
 
 	@Service('DateService') 
 	def dateSvc; 
+
+	@Service('QrCodeInfoService')
+	def qrSvc;
 
 	private def RET_CODES = [
 		0  : [retcode:0,  message:'SUCCESS'], 
@@ -30,19 +41,52 @@ class TicketingService {
 		// params contains: id, barcode
 		try { 
 			if ( !params.id ) return RET_CODES[10]; 
-			if ( !params.barcode ) return RET_CODES[2]; 
 
-			def machinfo = turnstile_item.findTurnstile([ turnstileid: params.id ]); 
+			boolean is_qr = ( params.qr.toString() == '1' );
+			def barcode = ( is_qr ? params.data : params.barcode );
+			
+			if ( !barcode ) return RET_CODES[2]; 
+
+			def machinfo = em_turnstile_item.findTurnstile([ turnstileid: params.id ]); 
 			if ( !machinfo ) return RET_CODES[10]; 
 
-			def tkinfo = ticket.findBarcode([ barcode: params.barcode, turnstileid: params.id ]); 
+			if ( is_qr ) { 
+				// 
+				// handle the QRCode data from barcode 
+				// 
+				def qr = qrSvc.decode([ data: barcode ]); 
+				if ( !qr?.objid ) throw new Exception('objid  is required in QR data'); 
+				if ( !qr?.barcode ) throw new Exception('barcode  is required in QR data'); 
+
+				if ( qr.route?.objid ) {
+					def var = em_var.find([ name: VAR_QR_TICKET_ROUTE_ID ]).first();
+					def mainrouteid = var?.value; 
+					if ( !mainrouteid ) 
+						throw new Exception( VAR_QR_TICKET_ROUTE_ID +"  variable must be set"); 
+
+					def mainroute = em_route.find([ objid: mainrouteid ]).first(); 
+					if ( !mainroute ) 
+						throw new Exception("'"+ mainrouteid +"' main route record not found"); 
+
+					if ( !mainrouteid.equalsIgnoreCase( qr.route.objid )) 
+						throw new Exception("This ticket is not allowed in this terminal"); 
+				}
+
+				// persist the data if not exist
+				def tk = em_ticket.find([ objid: qr.objid ]).select('objid').first(); 
+				if ( !tk ) em_ticket.create( tk ); 
+
+				barcode = qr.barcode; 
+			}
+
+			def tkinfo = em_ticket.findBarcode([ barcode: barcode, turnstileid: params.id ]); 
 			if ( !tkinfo ) return RET_CODES[2]; 
 			if ( tkinfo.dtused ) return RET_CODES[4]; 
 			if ( tkinfo.voided == 1 ) return RET_CODES[6];
 
 			if ( tkinfo.tag == tkinfo.categoryid ) {
 				def tokenid = KeyGen.newProvider().generateRandomKey( null ); 
-				ticket.updateToken([ tokenid: tokenid, barcode: params.barcode ]);  
+				em_ticket.updateToken([ tokenid: tokenid, barcode: barcode ]);  
 
 				def resp = [:]; 
 				resp.putAll( RET_CODES[0] ); 
@@ -65,13 +109,28 @@ class TicketingService {
 		// params contains: id, barcode, tokenid 
 		try { 
 			if ( !params.id ) return RET_CODES[10]; 
-			if ( !params.barcode ) return RET_CODES[2]; 			
 			if ( !params.tokenid ) return RET_CODES[5]; 
 
-			def machinfo = turnstile_item.findTurnstile([ turnstileid: params.id ]); 
+			boolean is_qr = ( params.qr.toString() == '1' );
+			def barcode = ( is_qr ? params.data : params.barcode );
+			
+			if ( !barcode ) return RET_CODES[2]; 
+
+			def machinfo = em_turnstile_item.findTurnstile([ turnstileid: params.id ]); 
 			if ( !machinfo ) return RET_CODES[10]; 
 
-			def tkinfo = ticket.findBarcode([ barcode: params.barcode, turnstileid: params.id ]); 
+			if ( is_qr ) { 
+				// 
+				// handle the QRCode data from barcode 
+				// 
+				def qr = qrSvc.decode([ data: barcode ]); 
+				if ( !qr?.objid ) throw new Exception('objid  is required in QR data'); 
+				if ( !qr?.barcode ) throw new Exception('barcode  is required in QR data'); 
+
+				barcode = qr.barcode; 
+			}
+
+			def tkinfo = em_ticket.findBarcode([ barcode: barcode, turnstileid: params.id ]); 
 			if ( !tkinfo ) return RET_CODES[2]; 
 			if ( tkinfo.dtused ) return RET_CODES[4]; 
 			if ( !tkinfo.tokenid ) return RET_CODES[5]; 
@@ -79,7 +138,7 @@ class TicketingService {
 
 			if ( tkinfo.tag == tkinfo.categoryid ) {
 				if ( tkinfo.tokenid == params.tokenid ) {
-					ticket.consume([
+					em_ticket.consume([
 						objid   : tkinfo.objid, 
 						tokenid : params.tokenid, 
 						dtused  : dateSvc.getServerDate() 
