@@ -78,7 +78,7 @@ class TicketingCashReceiptService {
 		info.numsenior = Math.max( 0, toNumber( info.numsenior, 0 )); 
 		info.numfil = Math.max( 0, toNumber( info.numfil, 0 )); 
 		info.numnonfil = Math.max( 0, toNumber( info.numnonfil, 0 )); 
-		def totaladults = info.numadult + info.numsenior;
+		def totaladults = info.numadult;
 		if (totaladults <= 0) throw new Exception('Number of adults must be greater than zero ' + totaladults);
 
 		info.discount = toNumber( info.discount, 0 ); 
