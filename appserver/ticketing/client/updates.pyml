@@ -5,4 +5,4 @@ app:
     "ticketing.app.context" : "enterprise"
 
   modules:
-    - { order: 270, version: 2.04, file: "modules/ticketing/rameses-ticketing.jar" }
+    - { order: 270, version: 2.05, file: "modules/ticketing/rameses-ticketing.jar" }
