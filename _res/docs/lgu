@@ -5,9 +5,9 @@ Pass: etracs255
 
 
 [DB Access]
-IP   : 192.168.2.220
-User : 
-Pass : 
+IP   : 192.168.2.204
+User : etracsdbuser
+Pass : 3tr@csdbu53r
 
 
 [Webmin]

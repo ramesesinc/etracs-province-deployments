@@ -54,6 +54,11 @@ class OnlineTicketingService {
 
         if ( !param.info.routes ) throw new Exception("param.info.routes  parameter is requried in getBilling"); 
 
+        def routes = ( param.info.routes ? param.info.routes : []); 
+        param.info.routes = routes.findAll{( it.selected.toString().matches('true|1'))}
+        		
+		if ( !param.info.routes ) throw new Exception("Please select at least one route"); 
+
         if ( !param.info.tag ) { 
         	param.info.tag = 'TOURIST'; 
         }

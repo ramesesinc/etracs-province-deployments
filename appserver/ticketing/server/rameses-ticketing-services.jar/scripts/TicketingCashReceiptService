@@ -90,7 +90,8 @@ class TicketingCashReceiptService {
 				pp.where = ['collectiontypeid = :collectiontypeid AND tag IS NOT NULL', [collectiontypeid : collectiontypeid]]; 
 
 				def svc = dynamicSvc.lookup('QueryService', 'treasury'); 
-				def cta = svc.getList( pp )?.first(); 
+				def results = svc.getList( pp ); 
+				def cta = (results ? results.first() : null); 
 				if ( cta ) info.tag = cta.tag; 
 			}
 		}
