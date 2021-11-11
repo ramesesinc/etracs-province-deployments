@@ -85,6 +85,9 @@ class AFInventorySummaryReportService {
 				allow_summaries = false; 
 			}
 
+			if ( !result.reportdata.items ) 
+				throw new Exception("No available stocks in AF inventory");  
+
 			if ( allow_summaries ) {
 				def groups = result.reportdata.items.groupBy{ it.particulars }
 
