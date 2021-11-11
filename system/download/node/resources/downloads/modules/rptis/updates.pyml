@@ -12,4 +12,4 @@ app:
       - { order: 244, version: 2.03, file: "modules/rptis/rameses-gov-etracs-rptis-transmittal.jar" }
       - { order: 245, version: 2.04, file: "modules/rptis/rameses-gov-etracs-rptis-sync2.jar" }
       - { order: 246, version: 2.03, file: "modules/rptis/rameses-gov-etracs-rptis-province.jar" }
-      - { order: 247, version: 2.04, file: "modules/rptis/rameses-gov-etracs-rptis-landtax-province.jar" }
+      - { order: 247, version: 2.05, file: "modules/rptis/rameses-gov-etracs-rptis-landtax-province.jar" }
