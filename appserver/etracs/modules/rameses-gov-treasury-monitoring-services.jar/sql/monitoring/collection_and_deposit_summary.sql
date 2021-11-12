@@ -69,7 +69,7 @@ from (
 		inner join depositslip ds on ds.depositvoucherfundid = dvf.objid 
 	where ds.depositdate >= $P{startdate} 
 		and ds.depositdate <  $P{enddate} 
-		and ds.state in ('PRINTED','VALIDATED') 
+		and ds.state in ('APPROVED','PRINTED','VALIDATED') 
 	group by ds.depositdate 	
 )t1
 group by controldate 
