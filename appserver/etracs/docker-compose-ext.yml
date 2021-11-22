@@ -4,10 +4,11 @@ services:
 
   etracs-server:
     volumes:
+      - ./dev_modules/rules:/services/modules/rules
+      - ./dev_modules/admin:/services/modules/admin
+      - ./dev_modules/treasury:/services/modules/treasury
+      
       ## temporarily mounting of dev-modules
       - ./dev-modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
       - ./dev-modules/rptis/rameses-gov-etracs-rptis-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-report-services.jar
       - ./dev-modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar
-
-      - ./dev_modules/rules:/services/modules/rules
-      - ./dev_modules/admin:/services/modules/admin
