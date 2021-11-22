@@ -6,3 +6,4 @@ services:
       volumes:
          - ./dev_modules/rules:/services/modules/rules
          - ./dev_modules/admin:/services/modules/admin
+         - ./dev_modules/treasury:/services/modules/treasury
