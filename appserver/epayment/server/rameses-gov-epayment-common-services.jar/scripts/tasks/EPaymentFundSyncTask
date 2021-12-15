@@ -1,0 +1,53 @@
+import com.rameses.annotations.*;
+
+class EPaymentFundSyncTask {
+	
+	@Service
+	def self; 
+
+	@Service( dynamic=true )
+	def dynaSvc; 
+
+	@DataContext( dynamic=true )
+	def dynaEm; 
+
+
+	@Schedule
+	public void startupProcess( task ) { 
+		self.download([:]); 
+	} 
+
+	@Schedule( interval=3600 )
+	public void recurringProcess( task ) { 
+		self.download([:]); 
+	} 
+
+
+	@Async
+	@ProxyMethod
+	void download( arg ) {
+		def param = [_schemaname: 'fund', where: '1=1'];
+		def svc = dynaSvc.lookup('QueryService', 'financial'); 
+		def list = svc.getList( param ); 
+
+		def em = dynaEm.lookup('eor_fund'); 
+		def findby = [:];
+
+		list.each{ o-> 
+			findby.objid = o.objid; 
+			
+			def ff = em.find( findby ).select('objid').first(); 
+			try {
+				if ( ff ) {
+					em.find( findby ).update( o ); 
+				} else {
+					em.create( o ); 
+				} 
+			} 
+			catch(Throwable t) { 
+				println '[EPaymentFundSyncTask] failed to download '+ o.objid; 
+				t.printStackTrace();
+			} 
+		}
+	}
+} 
