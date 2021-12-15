@@ -1,0 +1,73 @@
+import com.rameses.annotations.*
+
+class EORRemittanceInterceptor {
+
+    @DataContext('eor_remittance_lockid') 
+    def eor_remittance_lock; 
+
+    @DataContext('eor_remittance_fund') 
+    def eor_remittance_fund; 
+
+    @DataContext('eor_remittance') 
+    def eor_remittance; 
+
+    @DataContext('eor') 
+    def eor; 
+
+    @DataContext('paymentpartner') 
+    def paymentpartner; 
+
+    
+    @Before(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'eor_remittance' }")
+    public void beforeRemove( evt ) {
+        def o = evt.args[0];
+
+        def remittanceid = o.objid; 
+        if ( !remittanceid ) return; 
+
+        def findby = [ objid: remittanceid ]; 
+        def lockid = new java.rmi.server.UID().toString(); 
+        eor_remittance_lock.find( findby ).update([ lockid: lockid ]); 
+
+        def rem = eor_remittance.find( findby ).select('objid,state,controlno').first(); 
+        if ( !rem?.objid ) return; 
+
+        if ( rem.state.toString().toUpperCase() != 'DRAFT' ) 
+            throw new Exception("EOR Remittance transaction must be in DRAFT status"); 
+
+        findby.clear(); 
+        findby.remittanceid = remittanceid; 
+        eor.find( findby ).update([ remittanceid: '{NULL}']); 
+
+        if ( rem.controlno.toString().toUpperCase().startsWith('TMP-REM-')) {
+            // only delete the record if controlno starts with TMP-REM-
+            eor_remittance_fund.find( findby ).delete(); 
+        }
+        else { 
+            // no deletion to be done 
+            o._cancelid = remittanceid; 
+            o._lockid = lockid; 
+            o.objid = lockid; 
+        }
+    } 
+
+    @After(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'eor_remittance' }")
+    public void afterRemove( evt ) {
+        def o = evt.args[0];
+
+        if ( o._cancelid && o._lockid ) { 
+            def findby = [ objid: o._cancelid ]; 
+            eor_remittance_lock.find( findby ).update([ lockid: o._lockid ]); 
+            eor_remittance.find( findby ).where(" state <> 'CANCELLED' ").update([ state: 'CANCELLED' ]);
+        }
+    } 
+
+    @After(pattern="PersistenceService.read", eval="#{ args[0]._schemaname == 'eor_remittance' }")
+    public void afterRead( evt ) {
+        def res = evt.result; 
+
+        if ( res?.partnerid ) {
+            res.partner = paymentpartner.find([ objid: res.partnerid ]).select('objid,code,name').first(); 
+        } 
+    } 
+}

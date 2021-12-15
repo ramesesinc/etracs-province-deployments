@@ -1,0 +1,18 @@
+<schema>
+	<element tablename="eor_share">
+		<field name="objid" primary="true" prefix="EORSHR"/>
+		<field name="parentid" required="true"/>
+		
+		<field name="refitem_objid" required="true"/>
+		<field name="refitem_code" />
+		<field name="refitem_title" required="true"/>
+		<field name="refitem_fund_objid" />
+
+		<field name="payableitem_objid" required="true"/>
+		<field name="payableitem_code" />
+		<field name="payableitem_title" required="true"/>
+		<field name="payableitem_fund_objid" />
+
+		<field name="amount" required="true" type="decimal"/>
+	</element>
+</schema>

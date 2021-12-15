@@ -1,0 +1,63 @@
+import com.rameses.annotations.*;
+
+class EORPostingService {
+
+    @Env
+    def env;
+
+    @Service(value="OrgService", connection="admin")
+    def orgSvc; 
+
+    @Service(value="IncomeSummaryService", connection="treasury")
+    def incomeSummarySvc;
+
+    @DataContext("eor_remittance")
+    def rem_db;
+
+
+    @ProxyMethod
+    public void post( param ) {
+        if ( !param.objid ) throw new Exception("objid parameter is required"); 
+
+        def rem = rem_db.find([ objid: param.objid ]).first(); 
+        if ( !rem ) throw new Exception("'"+ param.objid +"' eor_remittance not found"); 
+
+        if ( !rem.state.toString().toUpperCase().matches("POSTED"))
+            throw new Exception("EOR Remittance must be in POSTED state"); 
+
+        def org = orgSvc.getRoot(); 
+        if ( !org?.objid ) throw new Exception("Failed to get the root org"); 
+
+        def items = rem_db.getItemsForIncomeSummary([ remittanceid: rem.objid ]);         
+
+        items.each{ o-> 
+            o.reftype = 'eor_remittance'; 
+            o.collectorid = 'eor'; 
+            o.orgid = org.objid; 
+            o.refqtr = 0; 
+
+            def arr = o.refdate.toString().split("-"); 
+            o.refyear = arr[0].toInteger(); 
+            o.refmonth = arr[1].toInteger(); 
+            if ( o.refmonth >= 1 && o.refmonth <= 3 ) o.refqtr = 1; 
+            else if ( o.refmonth >= 4 && o.refmonth <= 6 ) o.refqtr = 2; 
+            else if ( o.refmonth >= 7 && o.refmonth <= 9 ) o.refqtr = 3; 
+            else if ( o.refmonth >= 10 && o.refmonth <= 12 ) o.refqtr = 4; 
+
+            o.remittanceid = o.liquidationid = o.refid; 
+            o.remittancedate = o.liquidationdate = o.refdate; 
+            o.remittanceyear = o.liquidationyear = o.refyear; 
+            o.remittancemonth = o.liquidationmonth = o.refmonth; 
+            o.remittanceqtr = o.liquidationqtr = o.refqtr; 
+
+            def itemacct = rem_db.findItemFund([ remittanceid: rem.objid, acctid: o.acctid ]); 
+            if ( !itemacct ) { 
+                itemacct = incomeSummarySvc.findItemAccount([ objid: o.acctid ]); 
+            } 
+
+            o.fundid = itemacct?.fund?.objid; 
+        }
+
+        incomeSummarySvc.postItems([ refid: rem.objid, items: items ]); 
+    }
+}

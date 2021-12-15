@@ -1,0 +1,6 @@
+<schema>
+	<element tablename="eor_number">
+		<field name="objid" primary="true" />
+		<field name="currentno" type="integer" />
+	</element>
+</schema>

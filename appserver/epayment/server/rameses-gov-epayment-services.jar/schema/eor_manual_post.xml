@@ -1,0 +1,17 @@
+<schema>
+	<element tablename="eor_manual_post">
+		<field name="objid" primary="true" prefix="EORMP"/>
+
+		<field name="paymentorderno" required="true" caption="Payment Order No"/>
+		<field name="amount" required="true" caption="Amount" type="decimal"/>
+		<field name="txntype" required="true" caption="Txn Type"/>
+		<field name="paymentpartnerid" required="true" caption="Pay Partner"/>
+		<field name="traceid" required="true" caption="Trace ID"/>
+		<field name="tracedate" required="true" caption="Trace Date"/>
+		<field name="reason" required="true" caption=""/>
+		<field name="createdby_objid" required="true" visible="false" />
+		<field name="createdby_name" required="true"  caption="Created By"/>
+		<field name="dtcreated" required="true" caption="Date Created"/>
+		<field name="state" required="true" caption="State" />
+	</element>
+</schema>
