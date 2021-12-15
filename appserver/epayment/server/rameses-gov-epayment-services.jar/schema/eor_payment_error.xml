@@ -1,0 +1,24 @@
+<schema>
+	<element tablename="eor_payment_error">
+		<field name="objid" primary="true" prefix="ERR"/>
+		<field name="txndate" />
+		<field name="errmsg" required="true"/>
+		<field name="errdetail" required="true"/>
+		<field name="paymentrefid" required="true" searchable="true"/>
+
+		<field name="errcode" required="true" type="integer"/>
+
+		<!-- 
+		lastprocstate = for recovering the error. 
+		0 = eor not yet created
+		1 = eor created but not updated to cloud
+		2 = eor created and updated in cloud but not emailed
+		-->
+		<field name="laststate" required="true" type="integer"/>
+
+		<complex name="paymentorder" ref="eor_paymentorder" jointype="many-to-one" required="false" includefields="objid,txntype,amount">
+			<key field="paymentrefid" target="objid" />
+		</complex>	
+	</element>
+</schema>	
+

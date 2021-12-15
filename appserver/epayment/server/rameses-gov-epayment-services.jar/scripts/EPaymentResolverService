@@ -1,0 +1,72 @@
+import com.rameses.annotations.*
+
+class EPaymentResolverService {
+
+    @Service("EPaymentService")
+    def epaymentSvc;
+
+    @DataContext("eor_paymentorder")
+    def po_db;
+
+    @DataContext("eor_payment_error")
+    def error_db;
+
+    @DataContext("eor_manual_post")
+    def manualPostEm;
+
+    @Service(value="epayment/QueryService", connection="cloud-server")
+    def cloudQrySvc;
+
+    @Service("EPaymentNotificationService")
+    def notifySvc;
+
+    @ProxyMethod
+    public void resolveError( p ) {  
+        def err = error_db.find( [objid: p.objid ] ).first();
+        if (!err) throw new Exception("Error entry not found");
+
+        //delete error after everything. If there are other process errors, a new error will be created by the epayment service.
+        error_db.find([ objid: p.objid ]).delete();
+
+        if ( err.laststate == 0 ) {
+            def pmt = manualPostEm.find([ paymentorderno: err.paymentrefid ]).first();
+            if ( pmt ) { 
+                pmt.txntype = pmt.txntype;
+                pmt.paypartnerid = pmt.paymentpartnerid;
+                pmt.paymentrefid = pmt.paymentorderno;
+            } 
+            else {
+                // fetch the paymentorder record
+                def po = po_db.find([ objid: err.paymentrefid ]).select('objid,txntype').first(); 
+                if ( !po ) 
+                    throw new Exception('Payment Order '+ pmt.paymentrefid +' not found'); 
+
+                def m = [ _schemaname: "payment" ];
+                m.findBy = [ paymentrefid: po.objid ];
+                pmt = cloudQrySvc.findFirst( m );
+                if ( !pmt ) 
+                    throw new Exception("This transaction was not yet paid. " );
+
+                pmt.txntype = po.txntype;
+            }
+
+            def pr = [:];
+            pr.traceid = pmt.traceid;
+            pr.tracedate = pmt.tracedate;
+            pr.amount = pmt.amount;
+            pr.txntype = pmt.txntype;
+            pr.partnerid = pmt.paypartnerid;
+            pr.paymentrefid = pmt.paymentrefid;
+            epaymentSvc.postPayment( pr );
+        }
+        else {
+            epaymentSvc.postPayment([ paymentrefid: p.paymentrefid, laststate: err.laststate ]); 
+        }
+
+        def newerr = error_db.find( [paymentrefid: err.paymentrefid ] ).first();
+        if(!newerr) {
+            notifySvc.send("epayment_error", [:]);
+            notifySvc.send("epayment", [:]);        
+        }
+    }  
+}

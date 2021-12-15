@@ -1,0 +1,86 @@
+import com.rameses.annotations.*
+
+class EORNumberService {
+
+    @Env 
+    def env;
+
+    @Service("DateService")
+    def dateService;
+
+    @DataContext('paymentpartner')
+    def partnerEm;
+
+    @DataContext('eor_number')
+    def num_db;
+
+    @Service(value='OrgService', connection="admin")
+    def orgSvc;
+
+    @ProxyMethod(local=true)
+    public def getNextEORNumber( def partnerid ) {
+        def org = orgSvc.getRoot(); 
+        def orgid = (org?.objid ? org.objid : '');
+
+        def part = partnerEm.find([ objid: partnerid ]).first(); 
+        if ( !part ) throw new Exception('Partner code '+ partnerid +' does not exist');
+        if ( !part.indexno ) throw new Exception('Partner code '+ partnerid +' must have an index number');
+
+        def indexno = part.indexno.toString(); 
+
+        String prefix = 'EOR'+ indexno + orgid + dateService.getServerYear();
+        def rec = num_db.find([ objid: prefix ]).first();
+        if ( !rec ) num_db.create([ objid: prefix, currentno: 0 ]);
+
+        // update to initiate record locked
+        int lockno = 10;  
+        num_db.find([ objid: prefix ]).update([ currentno: "{currentno + "+ (lockno + 1) +"}"]);
+
+        // get the current number minus lockno 
+        rec = num_db.find([ objid: prefix ]).first();
+        rec.currentno -= lockno; 
+
+        // re-update to sync sequence 
+        num_db.find([ objid: prefix ]).update([ currentno: rec.currentno ]); 
+
+        // return the formatted sequence 
+        return prefix + String.format("%06d", rec.currentno );
+    }   
+
+    @ProxyMethod(local=true)
+    public def getNextPONumber( prefix ) {
+        def seqname = 'PAYORDER'; 
+        def rec = num_db.find([ objid: seqname ]).first(); 
+        if ( rec ) {
+            num_db.find([ objid: seqname ]).update([ currentno: rec.currentno+1 ]); 
+        } else { 
+            rec = [ objid: seqname, currentno: 1 ]; 
+            num_db.create( rec ); 
+        } 
+        return (prefix ? prefix : '') + String.format("%010d", rec.currentno );
+    } 
+
+    @ProxyMethod(local=true)
+    public def getNextRemittanceNumber( param ) { 
+        def org = orgSvc.getRoot(); 
+        def orgid = (org?.objid ? org.objid : '');
+
+        String prefix = 'EORREM-'+ orgid;
+        def rec = num_db.find([ objid: prefix ]).first();
+        if ( !rec ) num_db.create([ objid: prefix, currentno: 0 ]);
+
+        // update to initiate record locked
+        int lockno = 10;  
+        num_db.find([ objid: prefix ]).update([ currentno: "{currentno + "+ (lockno + 1) +"}"]);
+
+        // get the current number minus lockno 
+        rec = num_db.find([ objid: prefix ]).first();
+        rec.currentno -= lockno; 
+
+        // re-update to sync sequence 
+        num_db.find([ objid: prefix ]).update([ currentno: rec.currentno ]); 
+
+        // return the formatted sequence 
+        return prefix + String.format("%06d", rec.currentno );
+    }       
+} 

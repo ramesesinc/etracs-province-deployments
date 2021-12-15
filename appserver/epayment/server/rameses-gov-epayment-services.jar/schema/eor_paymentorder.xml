@@ -1,0 +1,28 @@
+<schema> 
+	<element tablename="eor_paymentorder">
+		<field name="objid" primary="true" visible="true" caption="Order No" searchable="true" indexed="true"/>
+		<field name="state" />
+		<field name="txndate" type="timestamp" required="true" caption="Txn Date" indexed="true"/>
+		<field name="txntype" required="true" searchable="true" caption="Txn Type" indexed="true"/>
+		<field name="txntypename" required="true" caption="Txn Type"/>
+		<field name="payer_objid" />
+		<field name="payer_name"  caption="Payer" searchable="true" indexed="true"/>
+		<field name="paidby" required="true" caption="PaidBy"/>
+		<field name="paidbyaddress" required="true" caption="PaidByAddress"/>
+		<field name="particulars" />
+		<field name="amount" type="decimal" required="true" caption="Amount"/>
+		<field name="expirydate" type="date" required="true" caption="ExpiryDate"/>
+		<field name="refid"  />
+		<field name="refno" searchable="true" indexed="true" caption="RefNo"/>
+		<field name="controlno" required="true" caption="ControlNo" searchable="true" indexed="true"/>
+		<field name="locationid" />
+		<field name="origin" />
+		
+		<complex name="info" serializer="default" required="true"/>
+		<complex name="items" serializer="default" required="false" type="list" />
+
+		<field name="state" />
+		<field name="email" required="true"/>
+		<field name="mobileno" />
+	</element>
+</schema>

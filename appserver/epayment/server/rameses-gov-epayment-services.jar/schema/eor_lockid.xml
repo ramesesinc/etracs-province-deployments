@@ -1,0 +1,7 @@
+<schema>
+	<element tablename="eor">
+		<field name="objid" primary="true" prefix="EOR"/>
+		<field name="lockid" required="true"/>
+		<field name="state" required="true"/>
+	</element>
+</schema>

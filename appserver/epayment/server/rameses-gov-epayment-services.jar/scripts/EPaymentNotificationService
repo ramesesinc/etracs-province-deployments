@@ -1,0 +1,18 @@
+import com.rameses.annotations.*
+import com.rameses.util.*
+import com.rameses.common.*
+
+
+class EPaymentNotificationService   {
+
+    @XConnection('socketio')
+    def socketio;
+
+    @ProxyMethod
+    @Async
+    public def send( def id, def data ) {
+        println "sending notification " + id;
+        socketio.send( id, data );
+    }
+
+}

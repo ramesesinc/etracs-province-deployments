@@ -1,0 +1,18 @@
+import com.rameses.annotations.*;
+
+class OnlineLandTaxBillingReportInterceptor {
+	@Service(value="RPTReceiptService", connection="rpt")
+	def svc; 
+
+	@After(pattern="FormReportService.getData", eval="#{args[0].reportid == 'eor' && result.data.paymentorder.txntype == 'rptcol' }", index=100)
+	public void afterGetData(def evt) {
+		def req = evt.args[0];
+        def eor = evt.result.data;
+
+		def receipt = [objid: req.parameters.objid];
+		receipt = svc.formatReceiptForPrinting(receipt);
+		eor.lguname = receipt.lguname;
+		eor._items = receipt._items;
+		eor.template = "reports/epayment/eor56"; 
+	}
+}

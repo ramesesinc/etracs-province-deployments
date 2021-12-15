@@ -1,0 +1,20 @@
+<schema>
+	<element tablename="eor_remittance_fund">
+		<field name="objid" primary="true" prefix="EORRMFND" />
+		<field name="remittanceid" required="true"/>
+		<field name="fund_objid" required="true"/>
+		<field name="fund_code" required="true"/>
+		<field name="fund_title" required="true"/>
+
+		<field name="amount" required="true"/>
+		<field name="bankaccount_objid" required="false"/>
+		<field name="bankaccount_title" required="false"/>
+		<field name="bankaccount_bank_name" required="false"/>
+		<field name="validation_refno" required="false"/>
+		<field name="validation_refdate" required="false"/>
+
+		<complex name="parent" ref="eor_remittance" jointype="many-to-one" includefields="controlno,controldate" required="false">
+			<key field="remittanceid" target="objid"/>
+		</complex>	
+	</element>
+</schema>

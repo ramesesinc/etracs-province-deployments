@@ -1,0 +1,348 @@
+import com.rameses.annotations.*
+import com.rameses.util.*
+import com.rameses.common.*
+
+
+/************************************************
+* This is the one called by the gdx or kiosk
+*************************************************/
+class EPaymentService   {
+
+    @Env 
+    def env; 
+
+    @Service("EORService")
+    def eorSvc;  
+
+    @Service(value='OrgService', connection="admin")
+    def orgSvc; 
+
+    @Service("DateService")
+    def dateSvc;
+
+    @Service("EORNumberService") 
+    def seqSvc; 
+
+    @Service("NumberService")
+    def numSvc;
+
+    @Service("JasperEmailQueueService")
+    def emailQueueSvc;
+
+    @Service(dynamic=true)
+    def dynamicSvc;
+
+    @Service(value="epayment/CloudPaymentService", connection="cloud-server")
+    def cloudSvc;
+
+    @DataContext( dynamic=true )
+    def dynaEm;
+
+    @DataContext("eor")
+    def eorEm; 
+
+    @DataContext("eor_share")
+    def em_share; 
+
+    @DataContext("eor_paymentorder")
+    def poEm; 
+
+    @DataContext("eor_paymentorder_paid")
+    def poPaidEm; 
+
+    @DataContext("eor_paymentorder_cancelled")
+    def po_cancelled_db; 
+
+    @DataContext("eor_payment_error")
+    def err_db; 
+
+    @DataContext("epayment_plugin")
+    def pluginEm;
+
+
+    def findPluginSvc( txntype ) {
+        def p = pluginEm.find( [objid: txntype ] ).first();
+        if(!p) throw new Exception("Plugin " + txntype + " not found. Please register in epayment_plugin");
+        def serviceName = p.servicename;
+        def conn = p.connection;
+        def t = dynamicSvc.lookup(serviceName, conn );
+        if(!t) throw new Exception(serviceName + " not found for "+handler +" @connection "+conn);
+        return t;
+    }
+
+
+    private void initEnv() {
+        env.USERID = 'E-PAYMENT'; 
+        env.FULLNAME = 'E-PAYMENT';
+        env.USERNAME = 'E-PAYMENT';
+    }
+
+    //this method will be intercepted by the other modules based on the txntype 
+    @ProxyMethod
+    public def createPaymentOrder( def info ) {
+        initEnv();       
+
+        if (!info.txntype) throw new Exception('txntype is required');
+        if (!info.txntypename) throw new Exception('txntypename is required');
+
+        String locid = orgSvc.getRoot().code.replaceAll('-', ''); 
+        info.objid =  KeyGen.generateAlphanumKey( locid.padRight( 6, "0" ), 12 );
+        info.txndate = dateSvc.getServerDate(); 
+        info.controlno =  seqSvc.getNextPONumber( locid.padRight( 5, "0" ));  
+        info.locationid = locid; 
+
+        def cal = Calendar.instance; 
+        cal.setTime( info.txndate ); 
+        cal.add( Calendar.HOUR, 24 ); 
+        info.expirydate = new java.sql.Timestamp( cal.getTimeInMillis() ); 
+        info.state = 'PENDING';
+        def po = poEm.create( info ); 
+
+        po.orgcode = info.orgcode;
+        po.refno = info.refno;
+        po.origin = info.origin;
+
+        //execute creation of payment order in cloud
+        cloudSvc.createPaymentOrder( po );
+
+        //activate the state. activated means it is actually updated in the cloud.
+        poEm.find( [objid: po.objid ] ).update( [state: 'ACTIVE'] );
+        return po;
+    }
+
+    @ProxyMethod
+    public void cancelPaymentOrder( o ) { 
+        def po = poEm.find([ objid: o.refno ]).first();
+        if ( !po?.objid ) throw new Exception(""+ o.refno +" payment order not found"); 
+
+        po_cancelled_db.create( po ); 
+        poEm.find([ objid: po.objid ]).delete(); 
+    } 
+
+    private def buildErrorInfo( Throwable t ) {
+        def m = [:];  
+        def cause = t; 
+        while (cause != null) {
+            m.errmsg = cause.message; 
+            if ( m.errmsg != null) { 
+                def buff = new java.io.StringWriter();
+                cause.printStackTrace(new java.io.PrintWriter(buff)); 
+                m.errdetail = buff.toString(); 
+            } 
+            cause = cause.cause; 
+        }
+        m.errmsg = m.errmsg.toString();
+        if ( m.errdetail == null ) {
+            def buff = new java.io.StringWriter();
+            t.printStackTrace(new java.io.PrintWriter(buff)); 
+            m.errdetail = buff.toString(); 
+        } 
+        return m; 
+    }
+
+    void sendError( errcode, laststate, paymentrefid, ex ) {
+        def err = buildErrorInfo( ex ); 
+        err.errcode = errcode;
+        err.paymentrefid = paymentrefid;
+        err.txndate = dateSvc.getServerDate();
+        err.laststate = laststate;
+        err_db.create( err );         
+    }
+
+    def toNumber( value ) {
+        try {
+            if ( value instanceof Number ) {
+                return value; 
+            }
+            return new BigDecimal(value.toString()); 
+        } 
+        catch(Throwable t) {
+            return null; 
+        }
+    }
+
+    private def postEOR( def o, int laststate ) {
+        if( laststate == 0 ) {
+            int errstate = 0;
+            try {
+                initEnv();     
+                def paymentrefid = o.paymentrefid;
+                def po = poEm.find([ objid: paymentrefid ]).first();
+                if(!po?.objid) {
+                    def paidPo = poPaidEm.find( [objid: paymentrefid] ).first();    
+                    if(paidPo?.objid)
+                        throw new Exception('Payment Order No. ' + paymentrefid + ' has already been processed.')
+                    else
+                        throw new Exception('Payment Order No. ' + paymentrefid + ' does not exist')    
+                }
+                if (o.tracedate instanceof String ) {
+                    def df = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                    o.tracedate = df.parse( o.tracedate );
+                }
+
+                def amt1 = toNumber( po.amount ); 
+                def amt2 = toNumber( o.amount ); 
+                if (amt1 != amt2) throw new Exception("Amount does not match");
+                
+                if (po.txntype != o.txntype) throw new Exception("txntype does not match. Txntype passed is " + o.txntype );
+
+                po.partnerid = o.partnerid; 
+                po.tracedate = o.tracedate; 
+                po.traceid = o.traceid;
+
+                po.billdate = (po.tracedate ? po.tracedate : po.txndate);
+
+                def pluginSvc = findPluginSvc( po.txntype );
+                def bill = pluginSvc.verifyPayment( po );
+                if(!bill) bill = [:];
+
+                //we must remove objid otherwise it will interfere with our data.
+                if(bill.items) po.items = bill.items;
+
+                if( bill.amount == null )
+                    throw new Exception("Please include amount in verifyPayment");        
+
+                if( bill.amount == 0 )
+                    throw new Exception("There are no unpaid items for this transaction");        
+
+                amt1 = toNumber( bill.amount ); 
+                amt2 = toNumber( o.amount ); 
+                if ( amt1 != amt2 )
+                    throw new Exception("Bill amount that does not match with specified amount");
+
+                def eor = eorSvc.post( po ); 
+
+                errstate = 1; 
+                pluginSvc.postPayment( eor, bill ); 
+
+                if ( bill.sharing.toString().matches('true|1')) {
+                    rebuildShare( eor ); 
+                }
+                
+                return eor; 
+            }
+            catch( ex ) {
+                sendError( 0, errstate, o.paymentrefid, ex );
+                return null;
+            }
+        }
+        else {
+            //this is called by resolver. Error is not logged.
+            def eor = eorEm.find( [paymentrefid: o.paymentrefid ] ).first(1);
+            if(!eor) throw new Exception("EOR does not exist");
+
+            if(laststate == 1) {
+                try {
+                    def po = poPaidEm.find([ objid: eor.paymentrefid ]).first();
+                    def pluginSvc = findPluginSvc( po.txntype );
+                    def bill = pluginSvc.verifyPayment( po );
+                    pluginSvc.postPayment( eor, bill );
+                }
+                catch(ex) {
+                    sendError( 0, 1, o.paymentrefid, ex );
+                    return null;
+                }
+            }
+            return eor;
+        }
+    }
+
+    private boolean updateCloudPayment( def eor, def laststate ) {
+        if( laststate > 2 ) return true;
+        //attempt to post in cloud 
+        try {
+            def rm = [:];
+            rm.receiptno = eor.receiptno;
+            rm.receiptid = eor.objid;
+            rm.receiptdate = eor.receiptdate; 
+            rm.paymentrefid = eor.paymentrefid;        
+            cloudSvc.updatePaymentReceipt( rm );
+            poPaidEm.find( [objid: eor.paymentrefid ] ).update( [state: 'POSTED'] );
+            return true;
+        }
+        catch( ex ) {
+            sendError( 0, 2, eor.paymentrefid, ex );
+            return false;
+        }   
+    }
+
+    public boolean emailPayment( def eor ) {
+        try {
+            //save also eor for emailing. The other data is fetched from the interceptor  
+            def mm = [:];
+            mm.reportid = "eor";
+            mm.refid = eor.objid;
+            emailQueueSvc.send( mm );
+            return true;
+        } 
+        catch( Throwable ee ) { 
+            sendError( 0, 3, eor.paymentrefid, ee ); 
+            return false; 
+        } 
+    } 
+
+
+    @ProxyMethod(local=true)
+    public def postPayment( def o ) {
+        int laststate = 0;
+        if( o.laststate ) laststate = o.laststate;
+
+        def eor = postEOR( o, laststate );
+        if(!eor) return null;
+
+        eorEm.find( [objid: eor.objid] ).update( [state: "POSTED"] );
+
+        emailPayment( eor );
+        return null;
+
+    }    
+
+
+    @ProxyMethod
+    public def getPaymentOrder( def o ) {
+        def po = poEm.find([objid: o.objid]).first();
+        if(!po) {
+            po = poPaidEm.find( [objid: o.objid ]).first();
+        }
+        return po;
+    }
+
+    @ProxyMethod
+    public def getReceipt( def o ) {
+        return eorEm.find( [objid: o.objid]).first(1);
+    }
+    
+    @ProxyMethod
+    public def rebuildShare( param ) { 
+        if ( !param.objid ) 
+            throw new Exception('param.objid  parameter is required'); 
+
+        def eor = eorEm.find([ objid: param.objid ]).select('objid,txntype,receiptdate').first(); 
+        if ( !eor ) throw new Exception("'"+ param.objid +"'  eor record not found"); 
+
+        def pluginSvc = findPluginSvc( eor.txntype ); 
+        if ( !pluginSvc ) throw new Exception("'"+ eor.txntype +"'  epayment_plugin record not found"); 
+
+        eor.receiptid = eor.objid; 
+
+        def em_eor_item = dynaEm.lookup('eor_item').find([ parentid: eor.objid ]); 
+        eor.items = em_eor_item.select('objid,parentid,amount,item.*').list(); 
+        eor.items.each{ 
+            it.receiptid = it.parentid; 
+        } 
+
+        def shares = pluginSvc.generateShares( eor ); 
+        if ( shares ) { 
+            def findby = [ parentid: eor.receiptid ]; 
+            em_share.find( findby ).delete(); 
+
+            shares.each{ 
+                it.parentid = eor.receiptid; 
+                em_share.create( it ); 
+            } 
+
+            shares = em_share.find( findby ).list(); 
+        } 
+        return shares; 
+    } 
+}
