@@ -1,0 +1,133 @@
+import com.rameses.annotations.*;
+
+class EORPaymentResolverService {
+
+    @Env 
+    def env; 
+
+    @Service 
+    def self; 
+
+    @Service(dynamic=true)
+    def dynaSvc; 
+
+    @Service(value="epayment/CloudPaymentSupportService", connection="cloud-server")
+    def cloudSupportSvc;
+
+    @Service('EPaymentService')
+    def paymentSvc; 
+
+    @DataContext('eor_paymentorder')
+    def po_db; 
+
+    @DataContext('eor_paymentorder_paid')
+    def po_paid_db; 
+
+    @DataContext('eor_paymentorder_cancelled')
+    def po_cancel_db; 
+
+    @DataContext('eor')
+    def eor_db; 
+
+
+    @ProxyMethod 
+    public def verifyPayment( po ) {
+        if ( !po.objid ) throw new Exception("'objid' parameter is required"); 
+        if ( !po.controlno ) throw new Exception("'controlno' parameter is required"); 
+
+        def m = [ controlno: po.controlno, paymentrefid: po.objid ]; 
+        m.findBy = [ objid: po.objid, orgcode: env.ORGID ]; 
+
+        return cloudSupportSvc.verifyPayment( m ); 
+    } 
+
+
+    @ProxyMethod 
+    public def postPayment( pay ) {
+        if ( !pay.objid ) throw new Exception("'objid' parameter is required"); 
+
+        return paymentSvc.postPayment( pay ); 
+    }   
+
+
+    @ProxyMethod 
+    public def moveToCancelled( param ) { 
+        if ( !param.objid ) throw new Exception("'objid' parameter is required"); 
+
+        def findby = [ objid: param.objid ]; 
+        def test = po_cancel_db.find( findby ).select('objid').first();  
+        if ( test?.objid ) return test; 
+
+        test = po_paid_db.find( findby ).select('objid').first();  
+        if ( test?.objid ) return [msg: 'PAYMENT_ORDER_PAID']; 
+
+        test = po_db.find( findby ).select('objid').first();  
+        if ( !test?.objid ) return [msg: 'PAYMENT_ORDER_NOT_FOUND']; 
+
+        def post_update = { 
+            def rec = po_db.find( findby ).first(); 
+            po_db.find( findby ).delete(); 
+            return po_cancel_db.create( rec );  
+        }
+
+        def po = cloudSupportSvc.moveToCancelled([ paymentrefid: param.objid ]); 
+        if ( po?.objid ) return post_update(); 
+
+        if ( po?.msg == 'PAYMENT_ORDER_NOT_FOUND' ) {
+            return post_update(); 
+        }
+
+        return po; 
+    } 
+
+
+    @ProxyMethod
+    public def syncEORPaymentOrderPaid() {
+        // there are EOR records that does not have a link in eor_paymentorder_paid 
+        // so this facility will attempt to download the paymentorder_paid record 
+        // from cloud if available
+        def list = eor_db.select('objid,paymentrefid,paymentorder.objid').where('paymentorder.objid IS NULL').list(); 
+        def res = [msg: 'syncing EORPaymentOrderPaid... '+ list.size() +' record(s)']; 
+
+        if ( list ) {
+            println res.msg; 
+
+            def svc = dynaSvc.lookup('epayment/PersistenceService', 'cloud-server'); 
+            self.syncEORPaymentOrderPaidImpl( list, svc ); 
+        }
+        return res; 
+    }
+
+    @Async 
+    @ProxyMethod
+    public void syncEORPaymentOrderPaidImpl( List list, def svc ) { 
+        if ( !list ) {
+            println 'syncing EORPaymentOrderPaid... Done'; 
+            return; 
+        }
+
+        def param = list.remove(0); 
+        println 'syncing EORPaymentOrderPaid... '+ param.paymentrefid; 
+
+        try {
+            param.data = svc.read([_schemaname: 'paymentorder_paid', objid: param.paymentrefid]);  
+        } 
+        catch(e) {
+            e.printStackTrace(); 
+        }
+
+        try {
+            if ( param.data ) { 
+                if ( param.data.paidbyaddress == null ) param.data.paidbyaddress = '-';
+                if ( param.data.state == null ) param.data.state = 'ACTIVE';
+                if ( param.data.items == null ) param.data.items = []; 
+                if ( param.data.info == null ) param.data.info = [:]; 
+
+                po_paid_db.create( param.data ); 
+            } 
+        } 
+        finally {
+            self.syncEORPaymentOrderPaidImpl( list, svc ); 
+        }
+    } 
+}
