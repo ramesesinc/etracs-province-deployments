@@ -1,0 +1,29 @@
+import com.rameses.annotations.*;
+
+class EORRemittanceReportFundDetailService {
+	
+	@ActiveDB('eor_remittancereport')
+	def remreport_db; 
+
+	@DataContext('eor_remittance')
+	def rem_db; 
+
+	@ProxyMethod
+	public def getFunds( param ) {
+		if ( !param.remittanceid ) throw new Exception('remittanceid parameter is required'); 
+
+		return remreport_db.getFunds( param ); 
+	}
+
+	@ProxyMethod 
+	public def getReport( param ) { 
+		if ( !param.remittanceid ) throw new Exception('remittanceid parameter is required'); 
+
+		param.fundid = (param.fund?.objid ? param.fund.objid : '%' ); 
+
+		def data = rem_db.find([ objid: param.remittanceid ]).first();  
+		data.receipts = remreport_db.getDetailReceipts( param ); 
+		if ( !data.receipts ) throw new Exception("No record(s) found ");
+		return data; 
+	}
+}

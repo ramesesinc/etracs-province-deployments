@@ -1,0 +1,84 @@
+import com.rameses.annotations.*
+import com.rameses.util.*
+import com.rameses.common.*
+import treasury.utils.*;
+
+class EORFormReportInterceptor {
+
+    @Service(value="EPaymentService")
+    def epmtSvc;
+
+    @Service("NumberService")
+    def numSvc;
+
+    @Service(dynamic=true)
+    def dynamicSvc;
+
+    @DataContext("epayment_plugin")
+    def pluginEm;
+
+    @DataContext("eor")
+    def eor;
+
+    @Service("FormReportService")
+    def formReportSvc
+
+    def findPluginSvc( txntype ) {
+        def p = pluginEm.find( [objid: txntype ] ).first();
+        if(!p) throw new Exception("Plugin " + txntype + " not found. Please register in epayment_plugin");
+        def serviceName = p.servicename;
+        def conn = p.connection;
+        def t = dynamicSvc.lookup(serviceName, conn );
+        if(!t) throw new Exception(serviceName + " not found for "+handler +" @connection "+conn);
+        return t;
+    }
+
+    @After(pattern="FormReportService.getData", eval="#{args[0].reportid == 'eor' }")
+    public void getEORReport( def evt ) {
+        def p = evt.args[0];
+        def result = evt.result;
+        def objid = p.parameters.objid;
+        if(!objid) throw new Exception("objid is required in eor report");
+        
+        def rct = epmtSvc.getReceipt( [objid: objid ] );
+        rct.qrcode = "qrcode:" + rct.receiptno;
+        rct.amountinwords = numSvc.doubleToWords( rct.amount );
+        rct.template = "reports/epayment/eor51";        
+        result.data = rct;
+    }   
+
+    @Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid == 'eor' }")
+    public void beforeQueueEmail( def evt ) {
+        def p = evt.args[0];
+        def data = epmtSvc.getReceipt( [objid: p.refid ] );
+        p.to = data.paymentorder.email;
+        p.info = data;
+        p.connection = "primary-email-server";
+    }
+
+    @Before(pattern="JasperReportEmailService.send", eval="#{ args[0].reportid == 'eor' }", index=-10000)
+    public void beforeSendEmail(def evt) {
+        def o = evt.args[0];
+        def refid = o.refid;
+
+        def result = formReportSvc.getData([reportid: "eor", parameters:[objid: refid]])
+        def eor = result.data
+
+        o.attachments = [
+            [ title:  eor.receiptno + ".pdf", reportid: "eor", data: eor ]
+        ];
+        
+        try {
+            def pluginSvc = findPluginSvc( eor.txntype );
+            def ext = pluginSvc.getEmailAttachments( eor );
+            if( ext ) {
+                o.attachments.addAll( ext );
+            }
+        }
+        catch(Throwable ignore) {
+            //
+        }        
+    } 
+
+
+}

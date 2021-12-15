@@ -1,0 +1,33 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+
+class EmailQueueTask {
+	
+	@DataContext("sys_email_queue")
+	def emailQueue;
+
+	@Service("DateService")
+	def dateSvc;
+	
+	@Service(value="JasperReportEmailService")
+	def jasperService;
+
+	@Schedule(interval=10)
+	public void sendEmail( task ) {
+		def list = emailQueue.where("state = 0").orderBy( "dtsent" ).list();
+		if( list ) {
+			list.each {
+				try {
+					def objid = 
+					jasperService.send( [reportid: it.reportid, refid: it.refid, to: it.to, subject: it.subject, message: it.message, connection:it.connection ] );
+					emailQueue.find( [objid: it.objid ]).delete();
+				}
+				catch(exx) {
+					def e = ExceptionManager.instance.getOriginal(exx);
+					emailQueue.find( [objid: it.objid]).update( [state:2, errmsg: e.message ] );
+				}
+			}
+		}
+	}
+
+}
