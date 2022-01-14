@@ -34,7 +34,6 @@ services:
       - ../../_custom/module-client/etracs:/apps/server/templates/custom
 
 
-      ## mounted patch folders
       - ./dev_modules/admin:/services/modules/admin
       - ./dev_modules/etracs:/services/modules/etracs
       - ./dev_modules/financial:/services/modules/financial
