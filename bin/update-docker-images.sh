@@ -10,9 +10,9 @@ docker pull ramesesinc/node-download-server:0.0.3
 echo ""
 docker pull ramesesinc/queue-server:2.5.02.01
 echo ""
-docker pull ramesesinc/gdx-proxy-server:v002
+docker pull ramesesinc/gdx-proxy-server:v004
 echo ""
-docker pull ramesesinc/gdx-client:1.04.01
+docker pull ramesesinc/gdx-client:1.04.03
 echo ""
 docker pull ramesesinc/etracs-web:2.5.02.01
 echo ""

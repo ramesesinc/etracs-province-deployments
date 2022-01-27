@@ -1,0 +1,21 @@
+<schema>
+	<element tablename="fund">
+		<field name="objid" primary="true" prefix="FUND"/>	
+		<field name="state" required="true" />
+		<field name="code" required="true" />
+		<field name="title" required="true" />
+		<field name="type" />
+		<field name="special" type="integer"/>
+		<field name="system" type="boolean"/>
+
+		<field name="depositoryfundid"/>
+		<complex name="depositoryfund" ref="eor_fund" jointype="many-to-one" 
+				 includefields="code,title" required="false">
+			<key field="depositoryfundid" target="objid" />
+		</complex>	
+
+		<field name="group_objid" />
+		<field name="group_title" />
+		<field name="group_indexno" />
+	</element>
+</schema>

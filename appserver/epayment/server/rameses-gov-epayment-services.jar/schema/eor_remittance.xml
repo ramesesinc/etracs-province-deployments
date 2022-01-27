@@ -1,0 +1,16 @@
+<schema>
+	<element tablename="eor_remittance">
+		<field name="objid" primary="true" prefix="EORREM"/>
+		<field name="state" required="true"	caption="State"/>
+		<field name="controlno" required="true"	caption="ControlNo"	indexed="true" searchable="true"/>
+		<field name="controldate" required="true" caption="ControlDate"/>
+		<field name="partnerid" required="true"	caption="PartnerId" searchable="true"/>
+		<field name="dtcreated" required="true"	caption="DateCreated" indexed="true"/>
+		<field name="createdby_objid" required="true" />
+		<field name="createdby_name" required="true" caption="CreatedBy" indexed="true"/>
+		<field name="amount" required="true" caption="Amount"/>
+		<field name="dtposted" caption="DatePosted"/>
+		<field name="postedby_objid" />
+		<field name="postedby_name" caption="PostedBy" indexed="true"/>
+	</element>
+</schema>

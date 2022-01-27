@@ -1,0 +1,7 @@
+<schema>
+	<element tablename="eor_remittance">
+		<field name="objid" primary="true" prefix="EORREM"/>
+		<field name="state" required="true" />
+		<field name="lockid" required="true" />
+	</element>
+</schema>

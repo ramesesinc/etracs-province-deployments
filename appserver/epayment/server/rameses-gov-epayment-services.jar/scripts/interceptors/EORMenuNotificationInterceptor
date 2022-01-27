@@ -1,0 +1,57 @@
+import com.rameses.annotations.*; 
+
+class EORMenuNotificationInterceptor {
+	
+	@Env
+	def env;
+
+	@DataContext("eor")
+	def eorEm;
+
+	@DataContext("eor_payment_error")
+	def errorEm;
+
+	@DataContext("sys_email_queue")
+	def emailQueueEm;
+
+	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'epayment' }")
+	public void getDomainCount( def evt ) {
+		def p = evt.args[0];
+		def result = evt.result;
+
+		//select count errors and unremitted transactions
+		def errCount = errorEm.select("c:{COUNT(*)}").where("1=1").val();
+		if( errCount == null) errCount = 0;
+		def unremitCount = eorEm.select("c:{COUNT(*)}").where("state='POSTED' AND remittanceid IS NULL").val();
+		if(unremitCount==null) unremitCount = 0;
+
+		result.count = errCount + unremitCount;
+	}	
+
+	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'epayment_unremitted_eor' }")
+	public void getUnremittedEOR( def evt ) {
+		def p = evt.args[0];
+		def result = evt.result;
+		def count = eorEm.select("c:{COUNT(*)}").where("state='POSTED' AND remittanceid IS NULL").val();
+		if(count) result.count = count;
+	}	
+
+	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'epayment_error' }")
+	public void getEORError( def evt ) {
+		def p = evt.args[0];
+		def result = evt.result;
+		def errCount = errorEm.select("c:{COUNT(*)}").where("1=1").val();
+		if(errCount) result.count = errCount;
+	}	
+
+	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'epayment_email_queue' }")
+	public void getEmailQueue( def evt ) {
+		def p = evt.args[0];
+		def result = evt.result;
+		def errCount = emailQueueEm.select("c:{COUNT(*)}").where("1=1").val();
+		if(errCount) result.count = errCount;
+	}	
+
+
+
+}

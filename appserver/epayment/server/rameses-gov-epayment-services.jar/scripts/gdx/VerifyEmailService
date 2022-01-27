@@ -1,0 +1,58 @@
+import com.rameses.annotations.*;
+
+public class VerifyEmailService {
+
+	@Service 
+	def self;
+
+	@Service(dynamic=true)
+	def dynaSvc;
+
+	@XConnection(dynamic=true)
+	def dyna_xconn;
+
+	@ProxyMethod
+	public def verifyEmail( data ) { 
+		println 'verifyEmail-> '+ data;
+
+		def recipient = (data?.email ? data.email : data?.mobileno); 
+		if ( !recipient ) throw new Exception("Please provide an email");
+
+		Random rand = new Random();
+		def otp = rand.nextInt(100000000);
+		def skey = String.format("%06d", otp).substring(0,6);
+
+		println "generating key " + skey;
+
+		def msg = " Your 6 digit validation key is " + skey;
+		if ( data.email ) {
+			self.sendMail([ to: data.email, subject:msg, message: msg ]); 
+		}
+		
+		if ( data.mobileno ) { 
+			self.sendSMS([ phoneno: data.mobileno, message: msg ]);  
+		} 
+
+		return [ key: skey ];
+	}
+
+
+	@Async
+	@ProxyMethod(local=true)
+	public void sendMail( data ) { 
+		def mailConn = dyna_xconn.lookup('primary-email-server'); 
+		mailConn.send( data ); 
+	}	
+
+	@Async
+	@ProxyMethod(local=true)
+	public void sendSMS( m ) {
+		def svc = dynaSvc.lookup('SMSService'); 
+		if ( svc ) {
+			svc.send([ phoneno: m.phoneno, message: m.message ]);  	
+		}
+		else {
+			println 'SMSService cannot be found. Please verify.'; 
+		}
+	}
+}
