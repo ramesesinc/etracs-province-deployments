@@ -92,8 +92,8 @@ from (
             select t1.*, 
               (
                 select top 1 objid from af_control_detail 
-                where controlid = t1.controlid and refdate <= $P{startdate} 
-                order by refdate desc, txndate desc, indexno desc 
+                where controlid = t1.controlid and refdate = t1.refdate 
+                order by txndate desc, indexno desc 
               ) as detailid 
             from ( 
               select afd.controlid, afc.endseries, afd.issuedto_objid, max(afd.refdate) as refdate 
