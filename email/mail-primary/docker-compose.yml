@@ -4,7 +4,7 @@ services:
 
   mail-primary: 
     container_name: mail-primary
-    image: ramesesinc/mail-server:latest
+    image: ramesesinc/mail-server:1.01
     restart: always
     logging: 
       driver: "json-file"
@@ -17,5 +17,8 @@ services:
       - ./env.conf
       - ../../_res/env.conf
       - ../../_custom/env.conf
+      - ../../_custom/mail/primary.conf
     ports:
       - "2525:25"
+    volumes:
+      - .:/etc/postfix/_custom
