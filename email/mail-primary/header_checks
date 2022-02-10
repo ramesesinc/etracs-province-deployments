@@ -1,0 +1,3 @@
+/^Received:/     IGNORE
+
+/^From:[[:space:]]+(.*)/ REPLACE From: "eTRACS" ${1}
