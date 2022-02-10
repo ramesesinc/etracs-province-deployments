@@ -2,7 +2,7 @@
 echo ""
 docker pull nginx:latest
 echo ""
-docker pull ramesesinc/mail-server:latest
+docker pull ramesesinc/mail-server:1.01
 echo ""
 docker pull ramesesinc/notification-server:1.0
 echo ""
