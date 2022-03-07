@@ -4,7 +4,7 @@ app:
 
    modules:
       - { order: 150, version: 2.02, file: "modules/shared/client-system.jar" }
-      - { order: 151, version: 2.02, file: "modules/shared/client-ui-extended.jar" }
+      - { order: 151, version: 2.03, file: "modules/shared/client-ui-extended.jar" }
       - { order: 152, version: 2.02, file: "modules/shared/rameses-client-menu.jar" }
       - { order: 153, version: 2.02, file: "modules/shared/rameses-client-report.jar" }
       - { order: 154, version: 2.03, file: "modules/shared/rameses-rules-mgmt.jar" }
