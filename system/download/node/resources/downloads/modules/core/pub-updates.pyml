@@ -8,12 +8,12 @@ app:
       - { order: 102, version: 2.01, file: "modules/core/osiris2-draw.jar" }
       - { order: 103, version: 2.01, file: "modules/core/osiris2-framework.jar" }
       - { order: 104, version: 2.03, file: "modules/core/osiris2-report.jar" }
-      - { order: 105, version: 2.04, file: "modules/core/rameses-client-ui.jar" }
+      - { order: 105, version: 2.05, file: "modules/core/rameses-client-ui.jar" }
       - { order: 106, version: 2.01, file: "modules/core/rameses-client-ui-bio.jar" }
       - { order: 107, version: 2.01, file: "modules/core/rameses-client-ui-jfx.jar" }
       - { order: 108, version: 2.01, file: "modules/core/rameses-client-notification-socketio.jar" }
       - { order: 109, version: 2.04, file: "modules/core/rameses-common2.jar"  }
       - { order: 110, version: 2.01, file: "modules/core/rameses-custom-impl.jar"  }
       - { order: 111, version: 2.01, file: "modules/core/rameses-jdbc16.jar"  }
-      - { order: 112, version: 2.03, file: "modules/core/rameses-seti.jar"  }
+      - { order: 112, version: 2.04, file: "modules/core/rameses-seti.jar"  }
       - { order: 113, version: 2.02, file: "modules/core/rameses-file-mgmt.jar"  }
