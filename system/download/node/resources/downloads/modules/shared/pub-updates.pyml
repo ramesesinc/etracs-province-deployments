@@ -12,7 +12,7 @@ app:
       - { order: 156, version: 2.03, file: "modules/shared/rameses-enterprise.jar" }
       - { order: 157, version: 2.03, file: "modules/shared/rameses-enterprise-admin.jar" }
       - { order: 158, version: 2.03, file: "modules/shared/rameses-enterprise-admin-plugin.jar" }
-      - { order: 160, version: 2.02, file: "modules/shared/rameses-enterprise-financial.jar" }
+      - { order: 160, version: 2.03, file: "modules/shared/rameses-enterprise-financial.jar" }
       - { order: 161, version: 2.02, file: "modules/shared/rameses-client-notification2.jar" }
       - { order: 162, version: 2.02, file: "modules/shared/rameses-email-client.jar" }
       - { order: 163, version: 2.04, file: "modules/shared/rameses-jasper-client.jar" }
