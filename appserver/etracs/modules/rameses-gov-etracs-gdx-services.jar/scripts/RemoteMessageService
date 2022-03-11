@@ -1,0 +1,8 @@
+import com.rameses.annotations.*;
+
+public class RemoteMessageService {
+	@ProxyMethod
+	public def onMessage(param) {
+		return param;
+	}
+}
