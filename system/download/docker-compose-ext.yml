@@ -4,4 +4,4 @@ services:
 
    download-node-server:
       volumes:
-         - ../../appserver/etracs/rptis-2.5.02.05.01/client:/apps/server/public/resources/downloads/modules/rptis
+         - ../../appserver/etracs/dev_modules/rptis-2.5.02.05.01/client:/apps/server/public/resources/downloads/modules/rptis
