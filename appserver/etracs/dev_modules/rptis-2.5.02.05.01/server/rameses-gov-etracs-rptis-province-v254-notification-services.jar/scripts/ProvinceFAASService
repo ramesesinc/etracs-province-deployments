@@ -1,0 +1,23 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceFAASService
+{   
+	@Env 
+	def env 
+
+	@Service('FAASService')
+	def faasSvc 
+
+	@ProxyMethod
+	public void disapproveFaas( faas ) {
+		deleteFaasAsync(faas)
+	}
+
+	@Async
+	@ProxyMethod
+	public void deleteFaasAsync( faas ) {
+		faasSvc.deleteFaas(faas)
+	}
+
+}

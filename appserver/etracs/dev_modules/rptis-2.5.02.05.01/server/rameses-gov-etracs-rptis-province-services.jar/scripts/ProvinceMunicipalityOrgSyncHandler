@@ -1,0 +1,72 @@
+import com.rameses.osiris3.xconnection.*;
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceMunicipalityOrgSyncHandler
+{   
+	@Env
+	def env 
+
+	@Context 
+	def appCtx;
+
+	@Service()
+	def self
+
+	@Service('OrgService')
+	def orgSvc 
+
+	@Service('ProvinceService')
+	def provSvc 
+
+	@Service('MunicipalityService')
+	def muniSvc 
+
+	@Service('BarangayService')
+	def brgySvc 
+
+	@Service('LGUService')
+	def lguSvc 
+
+
+	@ProxyMethod 
+	public def syncData( params ) {
+		self.doSync(params)
+		return new AsyncToken()
+	}
+
+
+	@Async 
+	@ProxyMethod
+	public void doSync( params ) {
+		def xconn = appCtx.getResource( XConnection.class, env.ASYNC.CONNECTION ); 
+		def queue = xconn.register( env.ASYNC.ID ); 
+
+		// params : [orgcode:'xxx']
+		def org = orgSvc.findByCode([code:params.orgcode])
+		if (! org){
+			queue.push([msgtype:'_ERROR_', msg:'Organization code not found.'])
+			queue.push( new AsyncToken(closed:true) )
+			return
+		}
+
+
+		def parentorg = orgSvc.getRoot()
+
+		def barangays = lguSvc.getBarangaysByParentId(org.objid)
+		barangays.each{
+			it.putAll( brgySvc.open(it))
+		}
+
+		
+
+		def data = [
+			province    	: provSvc.open(parentorg),
+			municipality 	: muniSvc.open(org),
+			barangays 		: barangays,
+		]
+		
+		queue.push([msgtype:'orgupdate', data:data])
+		queue.push( new AsyncToken(closed:true) )
+	}
+}

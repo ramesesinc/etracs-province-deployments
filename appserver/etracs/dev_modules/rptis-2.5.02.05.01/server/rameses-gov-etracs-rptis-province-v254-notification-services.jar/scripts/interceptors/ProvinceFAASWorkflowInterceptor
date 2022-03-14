@@ -1,0 +1,113 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+
+class ProvinceFAASWorkflowInterceptor
+{
+	@Env
+	def env
+
+	@Service('RPTCloudNotificationService')
+	def svc
+
+	@Service('FAASService')
+	def faasSvc
+
+	@Service('RPTUtil')
+	def util
+
+	@Service('FAASSupportService')
+	def supportSvc 	
+
+	@After(pattern="FAASService.resendToMunicipality") 
+	public void resendToLguOnlineFaas( evt ) {
+		println 'Resend faas to municipality...'
+		def faas = evt.result
+		if ( util.isTrue(faas.datacapture))
+			submitDataCapturedFaas(faas)
+		else
+			notifyMunicipalityOfOnlineApproval(faas)
+	}	
+
+
+	@After(pattern="FAASWorkflowService.signal", eval="#{args[0].state == 'approver' && args[0].action == 'approve'}") 
+	public void submitToLguOnlineFaas( evt ) {
+		def faas = evt.args[0].data;
+		faasSvc.approveFaas(faas)
+		notifyMunicipalityOfOnlineApproval(faas)
+	}
+
+	@After(pattern="FAASService.approveFaas", eval="#{result.datacapture == 1 || result.datacapture==true}") 
+	public void submitToLguDataCaptureFaas( evt ) {
+		def faas = evt.result
+		submitDataCapturedFaas(faas)
+	}
+
+
+	@After(pattern="FAASWorkflowService.signal", eval="#{args[0].action == 'disapprove'}") 
+	public void disapproveProvinceFaas( evt ) {
+		println 'Disapprove Faas...'
+		def task = evt.args[0]
+		def faas = task.data
+
+		def disapproveinfo = [
+			taskid  : task.objid,
+			objid 	: faas.objid, 
+			tdno    : (faas.tdno ? faas.tdno : faas.utdno), 
+			reason  : task.message, 
+			lguid   : faas.lguid,
+			disapprovedby: [objid:env.USERID, name:env.FULLNAME]
+		]
+		faas.disapproveinfo = disapproveinfo
+		faasSvc.disapproveOnlineFaas(faas)
+		
+		def asyncreq = svc.createAsyncRequest('MunicipalityFAASRemoteCallHandler', 'disapproveFaasByProvince', disapproveinfo)
+		svc.sendMessage(createAsyncMessage('prov-faas-disapprove-txn', asyncreq[0], faas))
+	}
+
+
+	@After(pattern="ProvinceFAASService.disapproveFaas") 
+	public void disapproveFaas( evt ) {
+		println 'Disapprove Faas...'
+		def faas = evt.args[0]
+		def disapproveinfo = [
+			objid 	: faas.objid, 
+			tdno    : (faas.tdno ? faas.tdno : faas.utdno), 
+			reason  : faas.disapprovereason, 
+			lguid   : faas.lguid,
+			disapprovedby: [objid:env.USERID, name:env.NAME]
+		]
+		def asyncreq = svc.createAsyncRequest('MunicipalityFAASRemoteCallHandler', 'disapproveFaasByProvince', disapproveinfo)
+		svc.sendMessage(createAsyncMessage('prov-faas-disapprove-txn', asyncreq[0], faas))
+	}
+
+
+	void submitDataCapturedFaas(faas){
+		println 'Submit data captured FAAS to municipality.'
+		def asyncreq = svc.createAsyncRequest('MunicipalityFAASRemoteCallHandler', 'postDataCapturedFaas',  supportSvc.getFaasData(faas))
+		svc.sendMessage(createAsyncMessage('prov-faas-datacaptured', asyncreq[0], faas))
+	}
+
+
+	void notifyMunicipalityOfOnlineApproval(faas){
+		def asyncreq = null;
+		if (faas.originlguid == env.ORGID){
+			asyncreq = svc.createAsyncRequest('MunicipalityFAASRemoteCallHandler', 'approveFaasByProvince',  supportSvc.getFaasData(faas))
+			svc.sendMessage(createAsyncMessage('prov-faas-online-txn', asyncreq[0], faas))
+			println 'Submit province online FAAS to municipality.'
+		}
+		else{
+			asyncreq = svc.createAsyncRequest('MunicipalityFAASRemoteCallHandler', 'postMunicipalFaasApprovedByProvince',  supportSvc.getApprovedFaasData(faas))
+			svc.sendMessage(createAsyncMessage('prov-faas-online-approval', asyncreq[0], faas))
+			println 'Submit online FAAS approval to municipality.'
+		}
+	}
+
+	def createAsyncMessage(messagetype, asyncreq, faas){
+		def msg = svc.createAsyncMessage(asyncreq, faas.lguid)
+		msg.messagetype =  messagetype 
+		msg.txnid = faas.objid
+		msg.txnno = faas.tdno 
+		return msg 
+	}
+
+}

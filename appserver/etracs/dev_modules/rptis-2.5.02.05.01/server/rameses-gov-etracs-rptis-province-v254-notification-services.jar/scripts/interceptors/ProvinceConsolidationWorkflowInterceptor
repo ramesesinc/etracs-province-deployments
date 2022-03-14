@@ -1,0 +1,69 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+
+class ProvinceConsolidationWorkflowInterceptor
+{
+	@Env 
+	def env 
+
+	@Service('RPTCloudNotificationService')
+	def svc
+
+	@ActiveDB('consolidation_task')
+	def taskEm;
+
+	@Service('ConsolidationSupportService')
+	def supportSvc 
+
+
+	@After(pattern="ConsolidationService.resendToMunicipality", index=100000) 
+	public void resendToLguOnlineConsolidation( evt ) {
+		println 'Resend consolidation to municipality...'
+		def consolidation = evt.result
+		doNotifyMunicipality(consolidation)
+	}
+
+
+	@After(pattern="ConsolidationWorkflowService.signal", eval="#{args[0].state.matches('approver|provapprover') && args[0].action == 'completed' }", index=100000) 
+	public void submitToLguOnlineConsolidation( evt ) {
+		println 'submitToLguOnlineConsolidation...'
+		def consolidation = evt.args[0].data;
+		doNotifyMunicipality(consolidation)
+	}
+
+	void doNotifyMunicipality(consolidation){
+		if (consolidation.originlguid.replaceAll('-.*?', '') != env.ORGID.replaceAll('-.*?', '')){
+			notifyMunicipality(consolidation)
+		}
+		else {
+			//post province created consolidation to municipality
+			postToMunicipality(consolidation)
+		}
+	}
+
+	// notify province of the approve consolidation
+	void notifyMunicipality(consolidation){
+		println 'Notify municipality....'
+		consolidation.tasks = taskEm.getTasks(consolidation)
+		supportSvc.buildFaasesData(consolidation)
+		def asyncreq = svc.createAsyncRequest('MunicipalityConsolidationRemoteCallHandler', 'approveConsolidationByProvince',  consolidation)
+		def msg = svc.createAsyncMessage(asyncreq[0], consolidation.lguid)
+		msg.filetype = 'consolidation'
+		msg.messagetype = 'consolidation-prov-approved'
+		msg.txnid = consolidation.objid 
+		msg.txnno = consolidation.txnno 
+		svc.sendMessage(msg)
+	}	
+
+	void postToMunicipality(consolidation){
+		println 'Post consolidation to municipality....'
+		def data = supportSvc.buildConsolidationData(consolidation)
+		def asyncreq = svc.createAsyncRequest('MunicipalityConsolidationRemoteCallHandler', 'postApprovedConsolidationFromProvince',  data)
+		def msg = svc.createAsyncMessage(asyncreq[0], consolidation.lguid)
+		msg.filetype = 'consolidation'
+		msg.messagetype = 'consolidation-prov-created'
+		msg.txnid = consolidation.objid 
+		msg.txnno = consolidation.txnno 
+		svc.sendMessage(msg)
+	}
+}

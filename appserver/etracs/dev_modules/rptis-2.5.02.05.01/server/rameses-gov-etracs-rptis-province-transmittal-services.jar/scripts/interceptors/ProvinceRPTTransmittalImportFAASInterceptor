@@ -1,0 +1,64 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class ProvinceRPTTransmittalImportFAASInterceptor
+{
+	@Env 
+	def env 
+
+	@Service('RPTTransmittalImportService')
+	def importSvc 
+
+	@Service('ProvinceFAASRemoteService')
+	def provSvc 
+
+	@Service('RPTUtil')
+	def util
+
+
+	@After(pattern='RPTTransmittalImportService.importData', eval="#{'faas'.equalsIgnoreCase(args[0].filetype) && 'SYNC'.equalsIgnoreCase(args[0].type)}")
+	public void postSyncFaas(evt){
+		def faasdata = evt.args[1].faasdata 
+		def transmittalitem = evt.args[1].transmittalitem
+
+		try{
+			if ('CANCELLED'.equalsIgnoreCase(faasdata.state))
+				provSvc.postDataCapturedFaas(faasdata)
+			else if (util.isTrue(faasdata.datacapture) && !faasdata.previousfaasses)
+				provSvc.postDataCapturedFaas(faasdata)
+			else if (util.isTrue(faasdata.datacapture) && faasdata.previousfaasses)
+				provSvc.postManualApprovedTransaction(faasdata)
+			else 
+				provSvc.postMunicipalityApprovedFaas(faasdata)
+
+			transmittalitem.status = 'POSTED'
+			importSvc.log(transmittalitem)
+		}
+		catch(e){
+			transmittalitem.status = 'ERROR'
+			transmittalitem.remarks = e.message 
+			importSvc.log(transmittalitem)
+		}
+	}
+
+
+	@After(pattern='RPTTransmittalImportService.importData', eval="#{'faas'.equalsIgnoreCase(args[0].filetype) && 'FORAPPROVAL'.equalsIgnoreCase(args[0].type)}")
+	public void postForApproval(evt){
+		def faasdata = evt.args[1].faasdata 
+		def transmittalitem = evt.args[1].transmittalitem
+
+		try{
+			provSvc.postFaasForProvinceApproval(faasdata)
+			transmittalitem.status = 'FORAPPROVAL'
+			importSvc.log(transmittalitem)
+		}
+		catch(e){
+			transmittalitem.status = 'ERROR'
+			transmittalitem.remarks = e.message 
+			importSvc.log(transmittalitem)
+		}
+	}
+
+}
+

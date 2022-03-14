@@ -1,0 +1,48 @@
+import com.rameses.annotations.*
+import com.rameses.common.*
+import com.rameses.services.extended.*
+
+
+class RPTImageSyncInterceptor
+{
+    @Env
+    def env
+
+    @Service('RPTMainSyncService')
+    def syncSvc
+
+    @Service('RPTImageSyncService')
+    def imageSync
+
+
+    /*---------------------------------------------------------
+    *
+    * SCHEDULING SUPPORT
+    *
+    ---------------------------------------------------------*/
+    @After(pattern="DBImageService.resendImage") 
+    public void resendImage( evt ) {
+        def params = evt.result
+        syncSvc.createDataForSync(getDataForSync(params, 'RPT-IMAGE-RESEND'))
+    }
+
+        /* scheduler */
+    @After(pattern="RPTMainSyncService.scheduleSync", eval="#{result.action.matches('RPT-IMAGE-RESEND')}", index=50000) 
+    public void scheduleResendImage( evt ) {
+        def data = evt.result 
+        imageSync.schedule(data)
+    }   
+
+
+    def getDataForSync(image, action) {
+        def data = [:]
+        data.objid = image.refid
+        data.reftype = 'dbimage'
+        data.refno = '-'
+        data.orgid = env.ORGID
+        data.action = action
+        data.info = [lguid: image.lguid]
+        return data
+    }
+}
+

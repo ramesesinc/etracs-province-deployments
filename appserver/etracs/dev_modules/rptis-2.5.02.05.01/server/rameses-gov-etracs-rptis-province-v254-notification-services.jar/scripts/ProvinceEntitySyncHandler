@@ -1,0 +1,51 @@
+import com.rameses.osiris3.xconnection.*;
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceEntitySyncHandler
+{   
+	@Env
+	def env 
+
+	@Context 
+	def appCtx;
+
+	@Service()
+	def self
+
+	@ActiveDB('entity_sync')
+	def em 
+
+	@Service('EntityService')
+	def svc  
+
+
+	@ProxyMethod 
+	public def syncData( params ) {
+		self.doSync(params)
+		return new AsyncToken()
+	}
+
+
+	@Async 
+	@ProxyMethod
+	public void doSync( params ) {
+		def xconn = appCtx.getResource( XConnection.class, env.ASYNC.CONNECTION ); 
+		def queue = xconn.register( env.ASYNC.ID ); 
+
+		// params : [orgid:'xxx']
+		def entities = em.getEntitiesByMunicipalityId([municipalityid:params.orgid, type:params.entityType])
+		if (!entities){
+			queue.push([msgtype:'_ERROR_', msg:'There are no entities registered for this municipality.'])
+			queue.push( new AsyncToken(closed:true) )
+			return
+		}
+
+		entities.each{entity ->
+			entity = svc.open(entity)
+			queue.push([msgtype:'entity', data:entity])
+		}
+
+		queue.push( new AsyncToken(closed:true) )
+	}
+}

@@ -1,0 +1,68 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*
+
+class ProvinceCancelledFAASRemoteService
+{   
+	@Env 
+	def env 
+
+	@Service('CancelledFAASWorkflowService')
+	def workflowSvc
+
+	@Service('CancelledFAASService')
+	def svc
+
+	@Service('CancelledFAASSupportService')
+	def supportSvc 
+
+	@Service('NotificationService')
+	def notificationService
+
+
+	@ProxyMethod
+	public void postCancelledFaasForProvinceApproval(cancelledfaas){
+		def old = supportSvc.findById(cancelledfaas)
+		if (!old){
+			removeOpenTask(cancelledfaas)
+			supportSvc.saveCancelledFaasData(cancelledfaas)
+			startWorkflow(cancelledfaas)
+			println 'Cancel FAAS for province approval has been successfully created.'
+		}
+	}
+
+	void startWorkflow(cancelledfaas){
+		def tasks = workflowSvc.start([refid:cancelledfaas.objid, data:cancelledfaas])
+		if (tasks)
+			cancelledfaas.taskid = tasks[0].objid
+
+		notifyGroup(cancelledfaas)
+	}
+	
+	void removeOpenTask(cancelledfaas){
+		if (cancelledfaas.tasks){
+			def opentask = cancelledfaas.tasks.find{it.enddate == null}
+			cancelledfaas.tasks.remove(opentask)
+		}
+	}
+
+	void notifyGroup(cancelledfaas){
+		def sender = [userid:env.USERID, name:env.FULLNAME]
+		if (env.REQUESTER){
+			sender.userid = env.REQUESTER.USERID 
+			sender.name = (env.REQUESTER.FULLNAME ? env.REQUESTER.FULLNAME : env.REQUESTER.USER)
+		}
+
+		def msg = [
+            objid     		: cancelledfaas.objid,
+            senderid  		: sender.userid,
+            sender    		: sender.name,
+            recipientid   	: 'assign-receiver',
+            recipienttype 	: 'group',
+            message   		: 'Cancel FAAS No. ' + cancelledfaas.faas.tdno + '    (assign-receiver) submitted by ' + sender.name + '.',
+            filetype  		: 'cancelledfaas',
+            data 	  		: [objid: cancelledfaas.objid, taskid:cancelledfaas.taskid],
+        ]
+        notificationService.addMessage(msg);
+	}
+}

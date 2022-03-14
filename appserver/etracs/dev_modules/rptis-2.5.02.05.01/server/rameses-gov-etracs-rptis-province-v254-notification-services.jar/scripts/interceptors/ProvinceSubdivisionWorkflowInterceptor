@@ -1,0 +1,127 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+import java.util.concurrent.*;
+
+class ProvinceSubdivisionWorkflowInterceptor
+{
+	@Env
+	def env 
+
+	@Service('RPTCloudNotificationService')
+	def svc
+
+	@Service('SubdivisionService')
+	def subdivisionSvc 
+
+	@Service('SubdivisionSupport2Service')
+	def supportSvc2 
+
+	@DataContext('subdivision_task')
+	def em_subdivision_task;
+	
+
+	@After(pattern="SubdivisionService.resendToMunicipality") 
+	public void resendToLguOnlineConsolidation( evt ) {
+		println 'Resend subdivision to municipality...'
+		def subdivision = evt.result
+		doNotifyMunicipality(subdivision)
+	}	
+
+	@After(pattern="SubdivisionWorkflowService.signal", eval="#{args[0].state.matches('approver|provapprover') && args[0].action == 'completed' }") 
+	public void submitToLguOnlineSubdivision( evt ) {
+		println 'submitToLguOnlineSubdivision...'
+		def subdivision = evt.args[0].data;
+		doNotifyMunicipality(subdivision)
+	}
+
+	void doNotifyMunicipality(subdivision){
+		if (isSubdivisionFromProvince(subdivision)){
+			//post province created subdivision to municipality
+			postSubdivisionToMunicipality(subdivision)
+		}
+		else {
+			// notify municipality of the approve subdivision
+			notifyMunicipality(subdivision)
+		}
+	}
+
+	def getApprover(subdivision){
+		def a = em_subdivision_task.find([refid:subdivision.objid, state:'provapprover']).orderBy('enddate desc').first()
+		if (!a) throw new Exception('Subdivision approver task does not exist.')
+		def approver = [:]
+		approver.name = a.actor.name 
+		approver.title = a.actor.title 
+		approver.dtsigned = a.enddate 
+		approver.taskid = a.objid 
+		return approver 
+	}
+
+	void notifyMunicipality(subdivision){
+		def queue = new LinkedBlockingQueue();
+
+		//submit faases
+		def approver = getApprover(subdivision)
+		def faases = subdivisionSvc.getSubdividedLands(subdivision.objid)
+		faases += subdivisionSvc.getAffectedRpus(subdivision.objid)
+		faases.each{
+			it._includetask = false
+			it._includeimage = false
+			def faas = supportSvc2.buildFaasData(it)
+			faas.approver = approver 
+			def asyncreq = svc.createAsyncRequest('MunicipalitySubdivisionRemoteCallHandler', 'approveSubdivisionFaas',  faas)
+			def msg = svc.createAsyncMessage(asyncreq[0], subdivision.lguid)
+			msg.messagetype = 'subdivision-faas-approved'
+			msg.txnid = faas.objid 
+			msg.txnno = faas.tdno 
+			svc.sendMessage(msg)
+		}
+
+		queue.poll(1, TimeUnit.SECONDS)
+
+		// approve subdivision
+		subdivision.tasks = em_subdivision_task.find([refid:subdivision.objid]).list();
+		def asyncreq = svc.createAsyncRequest('MunicipalitySubdivisionRemoteCallHandler', 'approveSubdivisionByProvince',  subdivision)
+		def msg = svc.createAsyncMessage(asyncreq[0], subdivision.lguid)
+		msg.filetype = 'subdivision'
+		msg.messagetype = 'subdivision-prov-approved'
+		msg.txnid = subdivision.objid 
+		msg.txnno = subdivision.txnno 
+		svc.sendMessage(msg)
+	}
+
+	void postSubdivisionToMunicipality(subdivision){
+		def queue = new LinkedBlockingQueue();
+
+		//submit faases
+		def faases = subdivisionSvc.getSubdividedLands(subdivision.objid)
+		faases += subdivisionSvc.getAffectedRpus(subdivision.objid)
+		faases.each{
+			it._includetask = true
+			it._includeimage = true
+			def faas = supportSvc2.buildFaasData(it)
+			def asyncreq = svc.createAsyncRequest('MunicipalitySubdivisionRemoteCallHandler', 'approveSubdivisionFaas',  faas)
+			def msg = svc.createAsyncMessage(asyncreq[0], subdivision.lguid)
+			msg.messagetype = 'subdivision-faas-approved'
+			msg.txnid = faas.objid 
+			msg.txnno = faas.tdno 
+			svc.sendMessage(msg)
+		}
+
+		queue.poll(1, TimeUnit.SECONDS)
+
+		def data = supportSvc2.buildSubdivisionData(subdivision)
+		def asyncreq = svc.createAsyncRequest('MunicipalitySubdivisionRemoteCallHandler', 'postApprovedSubdivisionFromProvince',  data)
+		def msg = svc.createAsyncMessage(asyncreq[0], subdivision.lguid)
+		msg.filetype = 'subdivision'
+		msg.messagetype = 'subdivision-prov-created'
+		msg.txnid = subdivision.objid 
+		msg.txnno = subdivision.txnno 
+		svc.sendMessage(msg)
+	}
+
+	def isSubdivisionFromProvince(subdivision){
+		return subdivision.originlguid.replaceAll('-.*?','') == env.ORGID.replaceAll('-.*?', '')
+	}
+
+}

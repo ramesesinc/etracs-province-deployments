@@ -1,0 +1,67 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+
+class ProvinceCancelledFAASWorkflowInterceptor
+{
+	@Env
+	def env
+
+	@Service('RPTCloudNotificationService')
+	def cloudSvc
+
+	@Service('CancelledFAASService')
+	def svc
+
+	@Service('RPTUtil')
+	def util
+
+	@Service('CancelledFAASSupportService')
+	def supportSvc 	
+
+	@Service('DateService')
+	def dtSvc
+
+	@After(pattern="CancelledFAASWorkflowService.signal", eval="#{args[0].state == 'approver' && args[0].action == 'approve'}") 
+	public void submitToLguOnlineFaas( evt ) {
+		println 'Submit cancelled FAAS approval to municipality'
+		def cancelledfaas = evt.args[0].data;
+		cancelledfaas.dtapproved = dtSvc.serverDate
+		svc.approve(cancelledfaas)
+		notifyMunicipality(cancelledfaas)
+	}
+
+	@After(pattern="CancelledFAASWorkflowService.signal", eval="#{args[0].state == 'approver' && args[0].action == 'delete'}") 
+	public void deleteCancelledFaas( evt ) {
+		println 'Delete online cancelled FAAS'
+		def cancelledfaas = evt.args[0].data
+		svc.delete(cancelledfaas)
+	}
+
+	@After(pattern="CancelledFAASWorkflowService.signal", eval="#{args[0].action == 'disapprove'}") 
+	public void disapproveCancelledFaas( evt ) {
+		println 'Disapprove online cancelled FAAS'
+		def cancelledfaas = evt.args[0].data
+		cancelledfaas.disapprovemessage = env.message 
+		notifyDisapprove(cancelledfaas)
+		svc.delete(cancelledfaas)
+	}
+
+	void notifyMunicipality(cancelledfaas){
+		println 'notify municipality....'
+		def asyncreq = cloudSvc.createAsyncRequest('MunicipalityCancelledFAASRemoteCallHandler', 'approveCancelledFaasByProvince',  supportSvc.getCancelledFaasData(cancelledfaas))
+		def msg = cloudSvc.createAsyncMessage(asyncreq[0], cancelledfaas.lguid)
+		msg.filetype = 'cancelledfaas'
+		msg.messagetype = 'cancelledfaas-province'
+		cloudSvc.sendMessage(msg)
+	}
+
+	void notifyDisapprove(cancelledfaas){
+		println 'notify disapprove....'
+		def asyncreq = cloudSvc.createAsyncRequest('MunicipalityCancelledFAASRemoteCallHandler', 'disapproveCancelledFaasByProvince',  supportSvc.getCancelledFaasData(cancelledfaas))
+		def msg = cloudSvc.createAsyncMessage(asyncreq[0], cancelledfaas.lguid)
+		msg.filetype = 'cancelledfaas'
+		msg.messagetype = 'disapprove-cancelledfaas-province'
+		cloudSvc.sendMessage(msg)
+	}
+
+}

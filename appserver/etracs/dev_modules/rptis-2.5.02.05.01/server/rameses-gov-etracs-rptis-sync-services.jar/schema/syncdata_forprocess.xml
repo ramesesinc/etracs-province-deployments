@@ -1,0 +1,14 @@
+<schema>
+	<element tablename="syncdata_forprocess">
+		<field name="objid" primary="true" />
+		<field name="processed" type="boolean" />
+		<complex name="syncdataitem" ref="syncdata_item" jointype="many-to-one" 
+			required="false" includefields="parentid">
+			<key field="objid" target="objid" />
+		</complex>
+
+	</element>
+</schema>
+
+
+

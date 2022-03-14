@@ -1,0 +1,487 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class RPTMainSyncService {
+	@Env 
+	def env 
+
+	@Context 
+	def appCtx
+
+	@Service()
+	def self 
+
+	@Service(value='SyncCoordinatorService', connection='coordinator-script-service')
+    def coordinator 
+
+    @Service('DateService')
+    def dtSvc 
+
+    @Service('Var')
+    def var
+
+    @Service('RPTUtil')
+    def util
+
+	@DataContext('syncdata')
+	def em_sync
+
+	@DataContext('syncdata_forsync')
+	def em_forsync
+
+	@DataContext('syncdata_item')
+	def em_sync_item
+
+	@DataContext('syncdata_forprocess')
+	def em_sync_forprocess
+
+	@DataContext('syncdata_pending')
+	def em_sync_pending
+
+	@DataContext('syncdata_org')
+	def em_sync_org
+
+	@DataContext('sys_org')
+	def em_org
+
+
+	@ProxyMethod
+	public void updateCompletedSyncData() {
+		def where = []
+		where << 'state = :synching'
+		def syncdatalist = em_sync.select('objid,refno,action')
+								.where(where.join(' AND '), [synching: 'SYNCHING'])
+								.orderBy('dtfiled')
+								.list()
+		syncdatalist.each {
+			if (checkSyncCompleted(it)) {
+				em_sync.find([objid: it.objid]).update([state: 'COMPLETED'])
+				println 'Sync [COMPLETED] ' + it.action + ': ' + it.refno
+			}
+		}
+	}
+
+	@ProxyMethod
+	public void deleteCompletedSyncData() {
+		def syncdatalist = em_sync.select('objid').find([state: 'COMPLETED']).orderBy('dtfiled').list()
+		syncdatalist.each {syncdata ->
+			deleteSyncData(syncdata)
+		}
+	}
+
+	/*====================================================================
+	* Schedule items to be processed if then
+	* syncdata_forprocess queue is empty.
+	* Data on the queue will be dispatch asynchronously.
+	* Entry is deleted either processing is a success or failure.
+	* If successful, the item state is set to SYNC
+	* otherwise set to ERROR which could be rescheduled again
+	====================================================================*/
+	@ProxyMethod
+	public def hasItemForProcess() {
+		return em_sync_forprocess.where('1=1').first() != null;
+	}
+
+	@ProxyMethod
+	public void scheduleForProcess() {
+		if (hasItemForProcess()) {
+			return 
+		}
+
+		def list = getItemsForProcess()
+		if (list) {
+			println 'Scheduling items to process.'	
+			list.each{
+				em_sync_forprocess.create(it)
+			}
+		}
+	}
+
+
+	/*==================================================================
+	* Dispatch items asynchronously from the syncdata_forprocess queue.
+	* To avoid race condition, dispatch only if there are no items marked
+	* as processed. 
+	===================================================================*/
+
+	@ProxyMethod
+	public def isSynchingItems() {
+		return em_sync_forprocess.find([processed: 1]).first() != null
+
+	}
+
+	@ProxyMethod
+	public void processItemsForSync() {
+		if (isSynchingItems()) {
+			return
+		}
+
+		def list = getItemsForSync()
+		if (list ) {
+			em_sync_forprocess.where('1=1').update([processed: 1])
+			list.each {
+				self.sendAsyncData(it)
+			}
+		}
+	}
+
+	@Async
+	@ProxyMethod
+	public void sendAsyncData(item) {
+		try {
+			def syncdata = em_sync.find([objid: item.parentid]).first()
+			mergeSyncDataInfo(item, syncdata)
+			self.asyncSend(item)
+			logItemSent(item)
+		} catch (err) {
+			logItemError(item, err)
+		}
+	}
+
+	void mergeSyncDataInfo(item, syncdata) {
+		item.dtfiled = syncdata.dtfiled
+		item.orgid = syncdata.orgid
+		item.remote = syncdata.remote
+		item.sender = syncdata.sender
+		item.fileid = syncdata.fileid
+		if (item.info == null) item.info = [:]
+		if (syncdata.info) item.info.putAll(syncdata.info)
+	}
+
+
+	/*-------------------------------------
+	*
+	* Intercepted by implementors to build 
+	* the actual data to send to remote 
+	*
+	--------------------------------------*/
+	@ProxyMethod
+	public def asyncSend(syncdata){
+		return syncdata
+	}
+
+	/*-------------------------------------
+	*
+	* directly send data to coordinator
+	*
+	--------------------------------------*/
+	@ProxyMethod
+	public def send(syncdata){
+		return coordinator.send(syncdata)
+	}
+
+	@ProxyMethod
+	public def send2(syncdata, data){
+		if (data) {
+			syncdata.data = data 
+			return coordinator.send(syncdata)	
+		}
+		return null 
+	}
+
+
+	@ProxyMethod
+	public def receiveData(syncdata) {
+		def retval = [:]
+		def sdata = em_sync_item.select('state').find([objid: syncdata.objid]).first()
+		if (sdata && ! 'SYNC'.equalsIgnoreCase(sdata.state)) {
+			retval = self.receive(syncdata)
+			em_sync_item.find([objid: syncdata.objid]).update([state: 'SYNC'])
+			cleanupFullySyncData(syncdata)
+		} else {
+			retval = self.receive(syncdata)
+		}
+		println 'Sync [RECEIVED] ' + syncdata.action + ': ' + syncdata.refno 
+		return retval
+	}
+
+	/*-------------------------------------
+	*
+	* to be intercepted by receivers
+	* use args[0] to access actual data
+	--------------------------------------*/
+	@ProxyMethod
+	public def receive(syncdata){
+		//intercepted to return specific data 
+		em_sync_item.find([objid: syncdata.objid]).update([state: 'SYNC'])
+		return [:]
+	}
+
+
+	@ProxyMethod
+	public def createDataForSync(data) {
+		data.createdby = [objid: env.USERID, name: env.USER, title: env.JOBTITLE]
+		data.dtfiled = dtSvc.serverDate
+		em_forsync.create(data)
+		return data
+	}
+
+	//intercepted to post transaction data to sync
+	@ProxyMethod
+	public def scheduleSync(data) {
+		return data
+	}
+
+	@ProxyMethod
+	public void deleteDataForSync(data) {
+		em_forsync.find([objid: data.objid]).delete()
+	}
+
+	@ProxyMethod
+	public def create(data) {
+		def syncdata = [:]
+		syncdata.objid = 'SYNC' + new java.rmi.server.UID()
+        syncdata.state = 'PENDING'
+        syncdata.refid = data.objid
+        syncdata.reftype = data.reftype
+        syncdata.refno = data.refno
+		syncdata.action = data.action
+		syncdata.dtfiled = data.dtfiled
+		syncdata.orgid = data.orgid
+		syncdata.sender = data.createdby
+		syncdata.remote = data.remote
+		syncdata.async = false
+		if (!syncdata.info) syncdata.info = [:]
+		if (data.info) syncdata.info += data.info
+        syncdata.idx = 0
+		em_sync.create(syncdata)
+        return syncdata
+	}
+
+	@ProxyMethod
+	public def createItem(syncdata, item) {
+		item.parentid = syncdata.objid
+		item.state = 'PENDING'
+		item.idx = (++syncdata.idx)
+		em_sync_item.create(item)
+		return item
+	}
+
+	@ProxyMethod
+	public def createSyncMeta(syncdata) {
+		def existingData = em_sync.find([objid: syncdata.objid]).first()
+		if (!existingData) {
+			existingData = em_sync.create(syncdata)
+			syncdata.items.each {
+				em_sync_item.create(it)
+			}
+			println 'Sync [META] Receiving ' + syncdata.action + ': '  + syncdata.refno
+		}
+		return existingData
+	}
+
+
+
+
+	@ProxyMethod
+	public void schedulePendingData() {
+		getPendingSyncData().each {data ->
+			sendSyncDataMeta(data)
+		}
+	}
+
+
+	def getItemsForProcess(){
+		def params = [orgid: getOrgId(), synching: 'SYNCHING', active: 'ACTIVE', sync: 'SYNC']
+		def where = []
+		where << 'state <> :sync'
+		where << 'syncdata.orgid = :orgid'
+		where << 'syncdata.state = :synching' 
+		where << 'syncdata.pending.objid IS NULL'
+		where << 'syncdata.remote.state = :active'
+		where << 'forprocess.objid IS NULL'
+		return em_sync_item.select('objid').where(where.join(' AND '), params)
+				.orderBy('syncdata.dtfiled, idx')
+				.limit(3)
+				.list()
+				.each{ it.processed = false }
+	}
+
+	@ProxyMethod
+	public def getItemsForSync(){
+        return em_sync_item.where('forprocess.objid IS NOT NULL AND syncdata.pending.objid IS NULL')
+                .orderBy('idx')
+                .list()
+    }
+
+	
+
+	@ProxyMethod
+	public def getForProcessItems(){
+		return em_sync.where('forprocess.objid is not null')
+				.orderBy('dtfiled, idx')
+				.limit(25)
+				.list()
+	}
+
+	@ProxyMethod
+	public def getPendingItems(syncdata){
+		def filter = 'pending.objid is not null'
+
+		if (syncdata.orgid) {
+			filter = 'orgid = :orgid and pending.objid is not null'
+		}
+
+		return em_sync.where(filter, syncdata)
+				.orderBy('dtfiled')
+				.limit(25)
+				.list()
+	}
+
+	@ProxyMethod
+	public void reschedulePendingData(){
+		def where = []
+		where << 'pending.objid IS NOT NULL'
+		where << 'pending.expirydate <= :currdate'
+		where << 'remote.state = :active'
+		def pendings = em_sync.where(where.join(' AND '), [currdate: dtSvc.serverDate, active: 'ACTIVE'])
+				.orderBy('dtfiled')
+				.limit(25)
+				.list()
+
+		pendings.each {
+			def pendingitem = em_sync_item.select('objid').find([parentid: it.objid, state: 'PENDING']).first()
+			if (pendingitem) {
+				sendSyncDataMeta(it)
+			} else {
+				em_sync.find([objid: it.objid]).update([state: 'SYNCHING'])
+
+				em_sync_item.where('parentid = :parentid AND state <> :sync', [parentid: it.objid, sync: 'SYNC'])
+							.update([state: 'FORSYNC'])
+
+				em_sync_pending.delete(it)
+			}
+		}
+	}
+
+	void sendSyncDataMeta(data) {
+		try {
+			data.items = em_sync_item.find([parentid: data.objid]).list()
+			coordinator.createSyncMeta(data)
+			em_sync.find([objid: data.objid]).update([state: 'SYNCHING'])
+			em_sync_item.find([parentid: data.objid]).update([state: 'SYNCHING'])
+			println 'Sync [META] Sending ' + data.action + ': '  + data.refno
+		} catch(err) {
+			moveToPending(data, err, [state: data.state])
+		}
+	}
+
+	void logItemSent(item){
+		em_sync_item.find([objid: item.objid]).update([state: 'SYNC', error: null])
+		em_sync_forprocess.find([objid: item.objid]).delete()
+		resetOrgErrorStatus(item)
+		println 'Sync [SENT] ' + item.action + ': ' + item.refno
+	}
+
+	void logItemError(item, err) {
+		em_sync_item.find([objid: item.objid]).update([state: 'ERROR', error: err.message])
+		em_sync_forprocess.find([objid: item.objid]).delete()
+		updateOrgErrorStatus(item)
+		println 'Sync [ERROR] ' + item.action + ' ' + item.refno + ': ' + err.message
+	}
+
+	void moveToPending(syncdata, err, options) {
+		def currdate = dtSvc.serverDate
+
+		syncdata.error = err.message 
+		syncdata.expirydate = dtSvc.add(currdate, '10s')
+		em_sync_pending.save(syncdata)
+		def newstate = options?.state ? options.state : 'ERROR'
+		em_sync.find([objid: syncdata.objid]).update([state: newstate])
+
+		updateOrgErrorStatus(syncdata)
+	}
+
+	void updateOrgErrorStatus(item) {
+		em_sync_org.find([orgid: item.remote.orgid])
+		.update([
+			state: "{case when errorcount + 1 >= 5 then 'INACTIVE' else 'ACTIVE' end}", 
+			errorcount: '{errorcount + 1}'
+		])
+
+		def org = em_sync_org.find([orgid: item.remote.orgid]).first()
+		if (org.state == 'INACTIVE') {
+			def currdate = dtSvc.serverDate
+
+			def syncdata = [:]	
+			syncdata.objid = item.parentid
+			syncdata.expirydate = dtSvc.add(currdate, '10s')
+			em_sync_pending.save(syncdata)
+			em_sync_forprocess.where('syncdataitem.parentid = :parentid', [parentid: item.parentid]).delete()
+		}
+	}
+
+	void resetOrgErrorStatus(syncdata) {
+		em_sync_org.find([orgid: syncdata.remote.orgid])
+			.update([state: "ACTIVE", errorcount: 0])
+	}
+
+	def getPendingSyncData(){
+		def params = [orgid: getOrgId(), pending: 'PENDING', active: 'ACTIVE']
+
+		def where = []
+		where << 'orgid = :orgid'
+		where << 'state = :pending'
+		where << 'pending.objid IS NULL'
+		where << 'remote.state = :active'
+
+		return em_sync.where(where.join(' AND '), params)
+				.orderBy('dtfiled')
+				.limit(5)
+				.list()
+	}
+
+	def checkSyncCompleted(syncdata) {
+		def param = [parentid: syncdata.objid, sync: 'SYNC', pending: 'PENDING']
+		def unsyncitem = em_sync_item.select('objid')
+							.where('parentid = :parentid AND state <> :sync', param)
+							.first()
+		return unsyncitem == null 
+	}
+
+	void cleanupFullySyncData(syncdata) {
+    	def params = [parentid: syncdata.parentid, state: 'PENDING']
+    	def forsync = em_sync_item.where('parentid = :parentid AND state = :state', params).first()
+    	if (!forsync) {
+    		deleteSyncData([objid: syncdata.parentid])
+    	}
+    }
+
+	void deleteSyncData(syncdata) {
+		em_sync_pending.find([objid: syncdata.objid]).delete()
+		em_sync_forprocess.find([objid: syncdata.objid]).delete()
+		em_sync_item.find([parentid: syncdata.objid]).delete()
+		em_sync.find([objid: syncdata.objid]).delete()
+	}
+
+    def getOrgId() {
+    	if (env.ORGID) {
+    		return env.ORGID
+    	}
+    	return em_org.find([root: 1]).first()?.objid
+    }
+
+
+    @ProxyMethod
+    public def getRemoteOrgData() {
+    	def rootorg = em_org.find([root: 1]).first()
+    	if (!rootorg) return []
+
+    	def orgs = [];
+    	if ('PROVINCE'.equalsIgnoreCase(rootorg.orgclass)) {
+    		orgs = em_org.select('objid,code').find([orgclass: 'MUNICIPALITY']).list()
+    	} else {
+			orgs = em_org.select('objid,code').find([orgclass: 'PROVINCE']).list()
+    	}
+    	return [rootorg: rootorg, orgs: orgs]
+    }
+
+    @ProxyMethod
+    public def activate(org) {
+    	def remote = [orgid: org.rootorg.objid]
+    	resetOrgErrorStatus([remote: remote])
+    }
+    
+}
+

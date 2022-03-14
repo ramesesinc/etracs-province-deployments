@@ -1,0 +1,23 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class RPTSyncManagementService
+{   
+	
+    @ActiveDB('syncdata_management')
+    def em
+
+	@ProxyMethod
+	public def getOutboxItems(params) {
+		return em.getOutboxItems(params)
+	}
+
+	@ProxyMethod
+	public def getInboxItems(params) {
+		return em.getInboxItems(params)
+	}
+
+	
+
+}

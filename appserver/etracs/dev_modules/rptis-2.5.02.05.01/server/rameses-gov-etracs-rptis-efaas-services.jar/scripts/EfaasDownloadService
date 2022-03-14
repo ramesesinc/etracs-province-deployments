@@ -1,0 +1,33 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+public class EfaasDownloadService 
+{
+
+	@ActiveDB("efaas")
+	def em;
+
+	@Env
+	def env
+
+	@ProxyMethod
+	def getFaas(String tdno){
+		def params = ["tdno" : tdno];
+		def data = em.findFaas(params);
+		if(!data) throw new Exception(tdno + " could not be found!");
+		if(data.rpu.type == 'land') data.landdetails = em.getLandDetails([faasid:data.objid]);
+		if(data.rpu.type == 'bldg')
+		{
+			data.bldgrpu  = em.findBldgRpu(['rpuid':data.rpu.objid]);
+			data.bldgstructures = em.getBldgStructures(['bldgrpuid':data.rpu.objid]);
+			data.bldgrpustructuraltypes = em.getStructuralTypes(['bldgrpuid':data.rpu.objid]);
+			data.bldguses = em.getBldgUses(['bldgrpuid':data.rpu.objid]);
+			data.bldgflooradditionals  = em.getBldgFloorAdditionals(['bldgrpuid':data.rpu.objid]);
+			data.bldgflooradditionalparams = em.getBldgFloorAdditionalParams(['bldgrpuid':data.rpu.objid]);
+		}
+		return data;
+	}
+
+}

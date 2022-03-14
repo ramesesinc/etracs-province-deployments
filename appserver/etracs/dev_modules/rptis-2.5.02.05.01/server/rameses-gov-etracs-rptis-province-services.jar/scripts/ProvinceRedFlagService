@@ -1,0 +1,81 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class ProvinceRedFlagService
+{   
+	@Service('RPTRedFlagService')
+	def redflagSvc 
+
+	@Service('RPTCloudNotificationService')
+	def cloudSvc 
+
+	@Service('NotificationService')
+	def notifySvc		
+
+	@ActiveDB('faas_task')
+	def taskEm
+
+	@Service('RPTUtil')
+	def util
+
+
+	@ProxyMethod
+	public def postRedFlag( entity ) {
+		entity.putAll(redflagSvc.create(entity))
+		notifyMunicipality(entity)
+		return entity
+	}
+
+	@ProxyMethod
+	public def resendToMunicipality( entity ) {
+		entity += redflagSvc.openByCaseNo(entity)
+		if (entity.state == 'RESOLVED')
+			throw new Exception('Red Flag has already been resolved.')
+		notifyMunicipality(entity)
+		return entity
+	}
+
+	void notifyMunicipality(entity){
+		def asyncreq = cloudSvc.createAsyncRequest('MunicipalityRedFlagRemoteCallHandler', 'postRedFlag', entity)
+		cloudSvc.sendMessage(createAsyncMessage('prov-rpt-redflag', asyncreq[0], entity))
+        println 'Submit change FAAS red flag information to municipality.'
+	}
+
+
+	@ProxyMethod
+	public void resolveRedFlag(redflag){
+		redflagSvc.save(redflag)
+		notifyFiledBy(redflag)
+	}
+
+	void notifyFiledBy(redflag){
+		def currtask = redflagSvc.getCurrentTask(redflag)
+		def message = util.capitalize(currtask.filetype) + ' ' + redflag.refno + ' Red Flag #' + redflag.caseno + ' resolved.'
+		def msg = [
+            objid     : redflag.refid,
+            recipientid : redflag.filedby.objid,
+            recipienttype : 'user',
+            senderid  : redflag.resolvedby.objid,
+            sender    : redflag.resolvedby.name,
+            message   : message,
+            filetype  : (currtask?.filetype ? currtask.filetype : '-'),
+            data 	  : [taskid: currtask.objid],
+        ]
+        notifySvc.addMessage(msg)
+	}
+
+	def createAsyncMessage(messagetype, asyncreq, redflag){
+		def msg = cloudSvc.createAsyncMessage(asyncreq, redflag.lguid)
+		msg.messagetype =  messagetype 
+		msg.txnid = redflag.objid
+		msg.txnno = redflag.caseno
+		msg.filetype = 'rptredflag'
+		return msg 
+	}
+
+
+
+
+
+}

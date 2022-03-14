@@ -1,0 +1,38 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class ProvinceRPTTransmittalImportCancelledFAASInterceptor
+{
+	@Env 
+	def env 
+
+	@Service('RPTTransmittalImportService')
+	def importSvc 
+
+	@Service('ProvinceCancelledFAASRemoteService')
+	def provSvc 
+
+	@Service('RPTUtil')
+	def util
+
+
+	@After(pattern='RPTTransmittalImportService.importData', eval="#{'cancelledfaas'.equalsIgnoreCase(args[0].filetype) && 'FORAPPROVAL'.equalsIgnoreCase(args[0].type)}")
+	public void postForApproval(evt){
+		def cancelledfaas = evt.args[1].cancelledfaas 
+		def transmittalitem = evt.args[1].transmittalitem
+
+		try{
+			provSvc.postCancelledFaasForProvinceApproval(cancelledfaas)
+			transmittalitem.status = 'FORAPPROVAL'
+			importSvc.log(transmittalitem)
+		}
+		catch(e){
+			transmittalitem.status = 'ERROR'
+			transmittalitem.remarks = e.message 
+			importSvc.log(transmittalitem)
+		}
+	}
+
+}
+

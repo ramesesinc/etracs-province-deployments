@@ -1,0 +1,73 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceSyncPlantTreeSettingInterceptor
+{   
+	@Env
+	def env 
+
+	@Service('PlantTreeRYSettingService')
+	def planttreeSvc 
+
+	@DataContext('rysetting_planttree')
+	def em_planttree
+
+	@DataContext('rysetting_lgu')
+	def em_setting_lgu
+
+	@DataContext('sys_org')
+	def em_org
+
+
+
+    @After(pattern="RPTMainSyncService.receive", eval="#{args[0].reftype == 'rysetting_planttree' && 'SYNC-REVISION-SETTING'.equalsIgnoreCase(args[0].action)}") 
+    public void syncSetting(evt){
+    	def params = evt.args[0]
+        def result = evt.result 
+
+        checkValidOrg(params)
+
+        result.settings = getSettings(params)
+		result.status = 'OK'
+
+		result.settings.each{setting ->
+			setting.putAll(planttreeSvc.open(setting))
+			setting.assesslevels = planttreeSvc.getAssessLevels(setting)
+			
+			setting.unitvalues = planttreeSvc.getUnitValues(setting, null)
+		}
+	}
+
+
+	def getSettings(params) {
+		def settings = []
+
+		def lgusettings = em_setting_lgu.find([lguid:params.orgid, settingtype:'planttree']).list()
+		if (!lgusettings) {
+			lgusettings = em_setting_lgu.find([lguid:params.orgid.replaceAll('-', ''), settingtype:'planttree']).list()
+		}
+		lgusettings.each{
+			def sdata = em_planttree.find([objid:it.rysettingid, ry:params.ry]).first()
+			if (sdata) {
+				settings << sdata 
+			}
+		}
+
+		if (!settings) {
+			throw new Exception('Setting is not defined for revision year ' + params.ry + '.')
+		}		
+
+		return settings 
+	}
+
+		void checkValidOrg(params) {
+		def org = em_org.find([objid: params.orgid]).first()
+		if (!org) {
+			org = em_org.find([objid: params.orgid.replaceAll('-', '')]).first()
+		}
+		if (!org){
+			throw new Exception('Organization ' + params.orgcode + ' is not defined.')
+		}
+	}
+
+}

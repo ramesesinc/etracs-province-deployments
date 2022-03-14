@@ -1,0 +1,26 @@
+<schema>
+	<element tablename="syncdata_item">
+		<field name="objid" primary="true" prefix="SYNCI" />
+		<field name="parentid" required="true" />
+		<field name="state" required="true" />
+		<field name="refid" required="true" />
+		<field name="reftype" required="true" caption="Ref Type" />
+		<field name="refno" caption="Ref No." />
+		<field name="action" required="true" caption="Action" />
+		<field name="idx" required="true" type="integer" />
+		<field name="error" />
+		<field name="async" type="boolean" />
+		<field name="dependedaction" />
+		<complex name="info" serializer="default" required="false" />
+
+		<complex name="syncdata" ref="syncdata" jointype="many-to-one" required="false"
+			includefields="state,orgid,dtfiled,pending.objid,forprocess.objid,remote.state">
+			<key field="parentid" target="objid" />
+		</complex>
+
+		<complex name="forprocess" ref="syncdata_forprocess" jointype="many-to-one" required="false">
+			<key field="objid" target="objid" />
+		</complex>
+
+	</element>
+</schema>

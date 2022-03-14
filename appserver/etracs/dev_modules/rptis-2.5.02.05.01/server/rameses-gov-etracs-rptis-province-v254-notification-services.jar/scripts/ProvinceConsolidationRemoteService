@@ -1,0 +1,55 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceConsolidationRemoteService
+{   
+	@Env 
+	def env 
+
+	@Service('NotificationService')
+	def notificationService
+
+	@Service('ConsolidationSupportService')
+	def supportSvc
+
+	@Service('ConsolidationWorkflowService')
+	def workflowSvc
+
+
+	@ProxyMethod 
+	public void postConsolidationForApproval(consolidation){
+		supportSvc.postConsolidationData(consolidation)
+		if (!consolidation._resubmitted){
+			workflowSvc.start([refid:consolidation.objid, data:consolidation])
+			notifyGroup(consolidation)
+		}
+		println 'Submitted consolidation has been successfully created.'
+	}
+
+
+	@ProxyMethod 
+	public void repostConsolidationRequirements(reqdata){
+		supportSvc.repostConsolidationRequirements(reqdata)
+	}	
+
+	void notifyGroup(consolidation){
+		def sender = [userid:env.USERID, name:env.FULLNAME]
+		if (env.REQUESTER){
+			sender.userid = env.REQUESTER.USERID 
+			sender.name = (env.REQUESTER.FULLNAME ? env.REQUESTER.FULLNAME : env.REQUESTER.USER)
+		}
+
+        def msg = [
+            objid     		: consolidation.objid,
+            senderid  		: sender.userid,
+            sender    		: sender.name,
+            recipientid   	: 'assign-receiver',
+            recipienttype 	: 'group',
+            message   		: 'Consolidation No. ' + consolidation.txnno + ' submitted for approval by ' + sender.name + ' (assign-receiver)',
+            filetype  		: 'consolidation',
+            data 	  		: [objid: consolidation.objid],
+        ]
+        notificationService.addMessage(msg);
+	}
+
+}

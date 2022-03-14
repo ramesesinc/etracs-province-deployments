@@ -1,0 +1,51 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+
+class ProvinceFAASChangeInfoInterceptor
+{
+	@Env
+	def env
+
+	@Service('RPTCloudNotificationService')
+	def svc
+
+	@Service('RPTUtil')
+    def util
+
+    @Service('EntityService')
+    def entitySvc 
+
+    @Service('FAASService')
+    def faasSvc 
+
+    @Service('FAASSupportService')
+    def supportSvc 
+
+
+
+	@After(pattern="FAASChangeInfoService.updateInfo", eval="#{result.isremote==null}") 
+	public void submitToMunicipality( evt ) {
+		def changeinfo = evt.result
+		changeinfo.isremote = true
+		if (changeinfo.action == 'change_owner_info')
+            changeinfo.taxpayer = entitySvc.open(changeinfo.newinfo.taxpayer)
+        else if (changeinfo.action == 'add_faas_requirement_document')
+            changeinfo.image = supportSvc.getImageByIds(changeinfo.imageids)
+
+		def lguid = faasSvc.findFaasById(changeinfo.faasid)?.lguid 
+		if(!lguid)
+			throw new Exception('FAAS lguid is not set.')
+
+		try{
+			def asyncreq = svc.createAsyncRequest('FAASChangeInfoService', 'updateInfo', changeinfo)
+			svc.sendAsyncMessage(asyncreq[0], lguid)
+	        println 'Submit change FAAS information to municipality.'
+		}
+		catch(e){
+			println '==================================='
+			println e.printStackTrace()
+			println 'Unable to send notification to remote.'
+		}
+	}
+
+}

@@ -1,0 +1,75 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceSyncMiscSettingInterceptor
+{   
+	@Env
+	def env 
+
+	@Service('MiscRYSettingService')
+	def miscSvc 
+
+	@DataContext('rysetting_misc')
+	def em_misc
+
+	@DataContext('rysetting_lgu')
+	def em_setting_lgu
+
+	@DataContext('sys_org')
+	def em_org
+
+
+
+    @After(pattern="RPTMainSyncService.receive", eval="#{args[0].reftype == 'rysetting_misc' && 'SYNC-REVISION-SETTING'.equalsIgnoreCase(args[0].action)}") 
+    public void syncSetting(evt){
+    	def params = evt.args[0]
+        def result = evt.result 
+
+        checkValidOrg(params)
+
+        result.settings = getSettings(params)
+		result.status = 'OK'
+
+		result.settings.each{setting ->
+			setting.putAll(miscSvc.open(setting))
+			
+			setting.assesslevels = miscSvc.getAssessLevels(setting).each{lvl ->
+					lvl.ranges = miscSvc.getRanges(lvl)
+				}
+			
+			setting.itemvalues = miscSvc.getMiscItemValues(setting)
+		}
+	}
+
+	def getSettings(params) {
+		def settings = []
+
+		def lgusettings = em_setting_lgu.find([lguid:params.orgid, settingtype:'misc']).list()
+		if (!lgusettings) {
+			lgusettings = em_setting_lgu.find([lguid:params.orgid.replaceAll('-', ''), settingtype:'misc']).list()
+		}
+		lgusettings.each{
+			def sdata = em_misc.find([objid:it.rysettingid, ry:params.ry]).first()
+			if (sdata) {
+				settings << sdata 
+			}
+		}
+
+		if (!settings) {
+			throw new Exception('Setting is not defined for revision year ' + params.ry + '.')
+		}		
+
+		return settings 
+	}
+
+	void checkValidOrg(params) {
+		def org = em_org.find([objid: params.orgid]).first()
+		if (!org) {
+			org = em_org.find([objid: params.orgid.replaceAll('-', '')]).first()
+		}
+		if (!org){
+			throw new Exception('Organization ' + params.orgcode + ' is not defined.')
+		}
+	}
+
+}

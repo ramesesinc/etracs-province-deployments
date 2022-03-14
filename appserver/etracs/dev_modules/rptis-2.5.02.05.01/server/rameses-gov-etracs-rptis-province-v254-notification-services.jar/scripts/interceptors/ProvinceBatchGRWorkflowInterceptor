@@ -1,0 +1,121 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+import java.util.concurrent.*;
+
+class ProvinceBatchGRWorkflowInterceptor
+{
+	@Env
+	def env 
+
+	@Service('RPTCloudNotificationService')
+	def svc
+
+	@Service('BatchGRService')
+	def batchSvc
+
+	@Service('BatchGRSupportService')
+	def supportSvc 
+
+	@DataContext('batchgr_task')
+	def em_batchgr_task;
+	
+
+	@After(pattern="BatchGRService.resendToMunicipality") 
+	public void resendToMunicipality( evt ) {
+		println 'Resend batch gr to municipality...'
+		def batchgr = evt.result
+		doNotifyMunicipality(batchgr)
+	}	
+
+	@After(pattern="BatchGRWorkflowService.signal", eval="#{args[0].state.matches('approver|provapprover') && args[0].action == 'completed' }") 
+	public void afterApprove( evt ) {
+		def batchgr = evt.args[0].data;
+		doNotifyMunicipality(batchgr)
+	}
+
+	void doNotifyMunicipality(batchgr){
+		if (isTransactionFromProvince(batchgr)){
+			postToMunicipality(batchgr)
+		}
+		else {
+			notifyMunicipality(batchgr)
+		}
+	}
+
+	def getApprover(batchgr){
+		def a = em_batchgr_task.find([refid:batchgr.objid, state:'provapprover']).orderBy('enddate desc').first()
+		if (!a) throw new Exception('Batch GR approver task does not exist.')
+		def approver = [:]
+		approver.name = a.actor.name 
+		approver.title = a.actor.title 
+		approver.dtsigned = a.enddate 
+		approver.taskid = a.objid 
+		return approver 
+	}
+
+	void notifyMunicipality(batchgr){
+		def queue = new LinkedBlockingQueue();
+
+		//submit faases
+		def approver = getApprover(batchgr)
+
+		batchSvc.getItems(batchgr).each {
+			it._includetask = false
+			it._includeimage = false
+			def faas = supportSvc.buildFaasData(it)
+			faas.approver = approver 
+			def asyncreq = svc.createAsyncRequest('MunicipalityBatchGRRemoteCallHandler', 'approveFaas',  faas)
+			def msg = svc.createAsyncMessage(asyncreq[0], batchgr.lgu.objid)
+			msg.messagetype = 'batchgr-faas-approved'
+			msg.txnid = faas.objid 
+			msg.txnno = faas.tdno 
+			svc.sendMessage(msg)
+		}
+		
+		queue.poll(1, TimeUnit.SECONDS)
+
+		batchgr.tasks = em_batchgr_task.find([refid: batchgr.objid]).list();
+		def asyncreq = svc.createAsyncRequest('MunicipalityBatchGRRemoteCallHandler', 'approveByProvince',  batchgr)
+		def msg = svc.createAsyncMessage(asyncreq[0], batchgr.lgu.objid)
+		msg.filetype = 'batchgr'
+		msg.messagetype = 'batchgr-prov-approved'
+		msg.txnid = batchgr.objid 
+		msg.txnno = batchgr.txnno 
+		svc.sendMessage(msg)
+	}
+
+	//post province created batchgr to municipality
+	void postToMunicipality(batchgr){
+		def queue = new LinkedBlockingQueue();
+
+		//submit faases
+		batchSvc.getItems(batchgr).each {
+			it._includetask = true
+			it._includeimage = true
+			def faas = supportSvc.buildFaasData(it)
+			def asyncreq = svc.createAsyncRequest('MunicipalityBatchGRRemoteCallHandler', 'approveFaas',  faas)
+			def msg = svc.createAsyncMessage(asyncreq[0], batchgr.lgu.objid)
+			msg.messagetype = 'batchgr-faas-approved'
+			msg.txnid = faas.objid 
+			msg.txnno = faas.tdno 
+			svc.sendMessage(msg)
+		}
+
+		queue.poll(1, TimeUnit.SECONDS)
+
+		def data = supportSvc.buildData(batchgr)
+		def asyncreq = svc.createAsyncRequest('MunicipalityBatchGRRemoteCallHandler', 'postApprovedFromProvince',  data)
+		def msg = svc.createAsyncMessage(asyncreq[0], batchgr.lgu.objid)
+		msg.filetype = 'batchgr'
+		msg.messagetype = 'batchgr-prov-created'
+		msg.txnid = batchgr.objid 
+		msg.txnno = batchgr.txnno 
+		svc.sendMessage(msg)
+	}
+
+	def isTransactionFromProvince(batchgr){
+		return batchgr.originlgu.objid.replaceAll('-.*?','') == env.ORGID.replaceAll('-.*?', '')
+	}
+
+}

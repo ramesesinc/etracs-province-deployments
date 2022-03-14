@@ -1,0 +1,31 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+
+class ProvinceSyncMasterInterceptor
+{   
+	@Service("QueryService")
+    def qrySvc;
+
+    @After(pattern="RPTMainSyncService.receive", eval="#{'SYNCMASTER'.equalsIgnoreCase(args[0].action)}") 
+    public void syncMaster(evt){
+        def params = evt.args[0]
+        params._schemaname = params.reftype 
+        params.where = ['1=1']
+        evt.result.items = qrySvc.getList(params)
+        if (params._schemaname == 'structure') {
+            loadStructureMaterials(evt.result.items)
+        }
+        evt.result.status = 'OK'
+    }
+
+    void loadStructureMaterials(structures) {
+        structures.each{
+            def p = [
+                _schemaname: 'structurematerial',
+                where: ['structure_objid = :objid', it]
+            ]
+            it.materials = qrySvc.getList(p);
+        }
+    }
+}

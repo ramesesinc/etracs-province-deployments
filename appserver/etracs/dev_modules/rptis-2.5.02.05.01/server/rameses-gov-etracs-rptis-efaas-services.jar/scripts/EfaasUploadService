@@ -1,0 +1,47 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+public class EfaasUploadService 
+{
+
+	@Service("FAASService")
+	def faasSvc;
+
+	@Service('RPUService')
+	def rpuSvc 
+
+	@Service('ExaminationService')
+	def examSvc 
+
+	@ActiveDB("efaas")
+	def em;
+
+	@Env
+	def env
+
+	@ProxyMethod
+	def upload(faasdata){
+		def faas = faasSvc.openFaas(faasdata);
+		if(faas.state != faasdata.state) throw new Exception("State does not match. Delete and download eFAAS again.");
+		faas.rpu._landdetails = [];
+		faas.rpu.landdetails.each{ x ->
+			def found = false;
+			faasdata.rpu.landdetails.each{ y ->
+				if(x.objid == y.objid) found = true;
+			}
+			if(!found) faas.rpu._landdetails << x;
+		}
+		faas.rpu.landdetails = faasdata.rpu.landdetails
+
+		faas.rpu.putAll(rpuSvc.calculateAssessment(faas.rpu))
+		faasSvc.updateFaas(faas);
+
+		faasdata.examinations.each{
+			examSvc.save(it)
+		}
+
+		return [status:'ok'];
+	}
+}

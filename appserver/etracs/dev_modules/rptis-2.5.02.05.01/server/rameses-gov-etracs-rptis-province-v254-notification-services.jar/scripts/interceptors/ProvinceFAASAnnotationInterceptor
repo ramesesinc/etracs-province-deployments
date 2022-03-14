@@ -1,0 +1,55 @@
+import com.rameses.annotations.*
+import com.rameses.common.*
+import com.rameses.services.extended.*
+
+class ProvinceFAASAnnotationInterceptor
+{
+	@Env
+	def env
+
+    @ActiveDB('cancelannotation')
+    def em 
+
+    @Service('RPTCloudNotificationService')
+    def svc
+
+    @Service('FAASService')
+    def faasSvc
+
+    @Service('FAASAnnotationService')
+    def annotationSvc 
+
+
+	@After(pattern="FAASAnnotationService.approve", eval="#{result.isremote==null}") 
+	public void submitAnnotationToMunicipality( evt ) {
+		def annotation = evt.result
+        annotation.image = annotationSvc.getImage(annotation)
+        annotation.isremote = true
+        def asyncreq = svc.createAsyncRequest('MunicipalityFAASAnnotationRemoteService', 'postAnnotation', annotation)
+        svc.sendAsyncMessage(asyncreq[0], getLguId(annotation.faasid))
+        println 'Submit province approved annotation to Municipality....'
+	}
+
+
+    @After(pattern="CancelAnnotationService.approve", eval="#{result.isremote==null}") 
+    public void submitCancelAnnotationToMunicipality( evt ) {
+        def cancelannotation = evt.result
+        cancelannotation.isremote = true
+
+        def annotation = em.findAnnotationByCancelId(cancelannotation)
+        if (!annotation)
+            throw new Exception('Annotation does not exist.')
+
+        def asyncreq = svc.createAsyncRequest('MunicipalityFAASAnnotationRemoteService', 'postCancelAnnotation', cancelannotation)
+        svc.sendAsyncMessage(asyncreq[0], getLguId(annotation.faasid))
+        println 'Submit province approved cancel annotation to municipality....'
+    }    
+
+    def getLguId(faasid){
+        def lguid = faasSvc.findFaasById(faasid)?.lguid 
+        if(!lguid)
+            throw new Exception('FAAS lguid is not set.')
+        return lguid 
+    }
+}
+

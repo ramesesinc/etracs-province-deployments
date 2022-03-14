@@ -1,0 +1,37 @@
+import com.rameses.osiris3.xconnection.*;
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceRemoteTestSyncHandler
+{   
+	@Env
+	def env 
+
+	@Context 
+	def appCtx;
+
+	@Service()
+	def self
+
+	@Service('OrgService')
+	def orgSvc 
+
+	
+	@ProxyMethod 
+	public def syncData( params ) {
+		self.doSync(params)
+		return new AsyncToken()
+	}
+
+
+	@Async 
+	@ProxyMethod
+	public void doSync( params ) {
+		def rootorg = orgSvc.getRoot() 
+		def xconn = appCtx.getResource( XConnection.class, env.ASYNC.CONNECTION ); 
+		def queue = xconn.register( env.ASYNC.ID ); 
+		def msg = 'Remote Connection with ' + rootorg.name + ' is successful.'
+		queue.push([msgtype:'remote-test', msg:msg])
+		queue.push( new AsyncToken(closed:true) )
+	}
+}

@@ -1,0 +1,9 @@
+<schema>
+	<element tablename="syncdata_offline_org">
+		<field name="orgid" primary="true" />
+		<field name="expirydate" required="true" />
+	</element>
+</schema>
+
+
+

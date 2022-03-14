@@ -1,0 +1,71 @@
+import com.rameses.annotations.*
+import com.rameses.common.*
+import com.rameses.services.extended.*
+
+
+/*----------------------------------------------------------------
+* FAAS Annotation Synchronization support shared 
+* between province and municipalities 
+-----------------------------------------------------------------*/
+class FAASChangeInfoSyncInterceptor
+{
+    @Env
+    def env
+
+    @Service('RPTMainSyncService')
+    def syncSvc    
+
+    @Service('FAASChangeInfoSyncService')
+    def changeInfoSync 
+
+
+    /*---------------------------------------------------------
+    *
+    * SCHEDULING SUPPORT
+    *
+    ---------------------------------------------------------*/
+    @After(pattern="FAASChangeInfoService.updateInfo", eval="#{args[0].remote == null}") 
+    public void schedulePostChangeInfo( evt ) {
+        def changeinfo = evt.result
+        syncSvc.createDataForSync(getDataForSync(changeinfo, 'CHANGEINFO-FAAS-POST'))
+    }
+
+    /* scheduler */
+    @After(pattern="RPTMainSyncService.scheduleSync", eval="#{result.action.matches('CHANGEINFO-FAAS-.*')}", index=50000) 
+    public void scheduleFAASForSync( evt ) {
+        def data = evt.result 
+        changeInfoSync.schedule(data)
+    }   
+
+
+    /*---------------------------------------------------------
+    *
+    * SEND/RECEIVE HANDLERS
+    *
+    ---------------------------------------------------------*/
+    @After(pattern="RPTMainSyncService.asyncSend", eval="#{result.action.matches('CHANGEINFO-FAAS-.*')}") 
+    public void sendData( evt ) {
+        def syncdata = evt.result 
+        changeInfoSync.send(syncdata)
+    }   
+
+    @After(pattern="RPTMainSyncService.receive", eval="#{args[0].action.matches('CHANGEINFO-FAAS-.*')}") 
+    public void receiveData(evt){
+        def syncdata = evt.args[0]
+        changeInfoSync.receive(syncdata)
+        evt.result.status = 'OK'
+    }
+
+
+    def getDataForSync(changeinfo, action) {
+        def data = [:]
+        data.objid = changeinfo.objid
+        data.reftype = 'changeinfo'
+        data.refno = changeinfo.action ? changeinfo.action : '-'
+        data.orgid = env.ORGID
+        data.action = action
+        data.info = [:]
+        return data
+    }
+}
+

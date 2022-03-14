@@ -1,0 +1,95 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceSubdivisionRemoteService
+{   
+	@Env 
+	def env 
+
+	@Service('NotificationService')
+	def notificationService
+
+	@Service('SubdivisionSupportService')
+	def supportSvc
+
+	@Service('SubdivisionSupport2Service')
+	def support2Svc
+
+	@Service('SubdivisionWorkflowService')
+	def workflowSvc
+
+	@DataContext('subdivision_task')
+	def em_subdivision_task
+
+
+	@ProxyMethod
+	public void postTransmittalForApproval(subdivision){
+		supportSvc.postSubdivisionData(subdivision)
+		def currtask = em_subdivision_task.select('objid').where('refid = :objid and enddate is null', subdivision).first()
+		if (!subdivision._resubmitted || !currtask){
+			workflowSvc.start([refid:subdivision.objid, data:subdivision])
+			notifyGroup(subdivision)
+		}
+		println 'Transmittal subdivision has been successfully created.'
+	}
+
+
+	@ProxyMethod
+	public void postSubdivisionForApproval(subdivision){
+		support2Svc.postSubdivisionData(subdivision)
+		def currtask = em_subdivision_task.select('objid').where('refid = :objid and enddate is null', subdivision).first()
+		if (!subdivision._resubmitted || !currtask){
+			workflowSvc.start([refid:subdivision.objid, data:subdivision])
+			notifyGroup(subdivision)
+		}
+		println 'Submitted subdivision has been successfully created.'
+	}
+
+	@ProxyMethod
+	public void postExaminations(data) {
+		support2Svc.postExaminations(data)
+	}
+
+	@ProxyMethod
+	public void postRequirements(data) {
+		support2Svc.postRequirements(data)
+	}
+
+	@ProxyMethod
+	public void postRequirement(data) {
+		support2Svc.postRequirement(data)
+	}
+
+	@ProxyMethod
+	public void postFaasData(faas) {
+		support2Svc.postFaasData(faas)	
+	}
+
+
+	public void repostSubdivisionRequirements(reqdata){
+		support2Svc.repostSubdivisionRequirements(reqdata)
+	}
+
+
+	void notifyGroup(subdivision){
+		println 'SubdivisionWorkflowService... notifyGroup...'
+		def sender = [userid:env.USERID, name:env.FULLNAME]
+		if (env.REQUESTER){
+			sender.userid = env.REQUESTER.USERID 
+			sender.name = (env.REQUESTER.FULLNAME ? env.REQUESTER.FULLNAME : env.REQUESTER.USER)
+		}
+
+        def msg = [
+            objid     		: subdivision.objid,
+            senderid  		: sender.userid,
+            sender    		: sender.name,
+            recipientid   	: 'assign-receiver',
+            recipienttype 	: 'group',
+            message   		: 'Subdivision No. ' + subdivision.txnno + ' submitted by ' + sender.name + '   (assign-receiver) ',
+            filetype  		: subdivision.filetype,
+            data 	  		: [objid: subdivision.objid],
+        ]
+        notificationService.addMessage(msg);
+	}
+
+}

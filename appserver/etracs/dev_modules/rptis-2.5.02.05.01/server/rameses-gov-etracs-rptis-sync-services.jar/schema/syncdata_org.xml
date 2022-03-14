@@ -1,0 +1,10 @@
+<schema>
+	<element tablename="syncdata_org">
+		<field name="orgid" primary="true" caption="OrgId"/>
+		<field name="state" required="true" caption="State" />
+		<field name="errorcount" type="integer" required="true" caption="Errors" />
+	</element>
+</schema>
+
+
+

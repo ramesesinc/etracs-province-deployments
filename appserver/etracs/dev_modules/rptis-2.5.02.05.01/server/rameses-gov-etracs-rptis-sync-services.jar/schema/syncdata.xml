@@ -1,0 +1,30 @@
+<schema>
+	<element tablename="syncdata">
+		<field name="objid" primary="true" prefix="SYNC" />
+		<field name="state" required="true" caption="State" />
+		<field name="refid" required="true" indexed="true" />
+		<field name="reftype" required="true" caption="Ref Type" searchable="true" indexed="true" />
+		<field name="refno" caption="Ref No."  searchable="true" indexed="true" />
+		<field name="action" required="true" caption="Action" />
+		<field name="dtfiled" required="true" caption="Date Filed" />
+		<field name="orgid" required="true"  searchable="true" indexed="true" />
+		<field name="remote_orgid" />
+		<field name="remote_orgcode" caption="Remote Org"  searchable="true" indexed="true" />
+		<field name="remote_orgclass" indexed="true" />
+		<field name="sender_objid" />
+		<field name="sender_name" caption="Sender" />
+		<field name="fileid" caption="File ID" />
+		<field name="haserror" expr="case when pending.objid is not null then 1 else 0 end" caption="Has Error" />
+
+		<complex name="pending" ref="syncdata_pending" jointype="many-to-one" required="false">
+			<key field="objid" target="objid" />
+		</complex>
+
+		<complex name="remote" ref="syncdata_org" jointype="many-to-one" required="false">
+			<key field="remote_orgid" target="orgid" />
+		</complex>
+	</element>
+</schema>
+
+
+
