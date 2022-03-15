@@ -1,0 +1,46 @@
+version: "3"
+
+services:
+  
+  queue-proxy:
+    image: nginx:latest
+    container_name: queue-proxy
+    restart: always
+    logging:
+      driver: "json-file"
+      options: 
+        max-file: "5"
+        max-size: 10m
+    environment:
+      TZ: "Asia/Manila"
+    ports:
+      - "9999:80"
+    volumes:
+      - ./conf.d:/etc/nginx/conf.d
+      - ../../_custom/queue:/resources
+
+
+  queue-server:
+    image: ramesesinc/queue-server:2.5.02.01
+    container_name: queue-server
+    restart: always
+    logging: 
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    env_file:
+      - ./env.conf
+      - ../../_res/env.conf
+      - ../../_custom/env.conf
+    ports:
+      - "9980:8080"
+      - "9970:8070"
+      - "9960:8060"
+    volumes:
+      - ../../_custom/queue/res:/webroot/res/queue/res
+      - ../../_custom/queue/lgu-logo.png:/webroot/res/images/lgu-logo.png
+      - ../../_custom/queue/files/queue.pg/content:/webroot/files/queue.pg/content
+      - ../../_custom/queue/files/queueing.pg/content:/webroot/files/queueing.pg/content
+      - ../../_custom/queue/files/queuenumber.pg/content:/webroot/files/queuenumber.pg/content
+      - ../../_custom/queue/queue-custom.css:/webroot/themes/default/css/default/queue-custom.css

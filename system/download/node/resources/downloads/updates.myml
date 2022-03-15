@@ -1,0 +1,18 @@
+app:
+   env:
+      "app.title" : "ETRACS 2.5 build 2.5.04.03 (${lgu_name})"
+      "app.host" : "${app_server_ip}:8070"
+      "app.cluster" : "osiris3"
+      "app.context" : "etracs25"
+      "app.help" : "http://${app_server_ip}:8080/help"
+      "app.loader" : "com.rameses.osiris2.client.OsirisAppLoader"
+      readTimeout : 300000
+      connectionTimeout : 5000
+      "filemgmt.enabled" : false
+      "#ws.host" : "${app_server_ip}:8060"
+      "#res.host" : "${app_server_ip}"
+      "socketio.host" : "${app_server_ip}:7080"
+
+   modules:
+      # 3rd party libs
+      - { order: 90, version: 2.02, file: "modules/libs/commons-net-3.5.jar" }
