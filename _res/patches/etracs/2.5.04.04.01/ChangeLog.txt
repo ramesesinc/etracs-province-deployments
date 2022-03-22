@@ -1,0 +1,35 @@
+255-03031
+==========================================================
+
+ASSESSOR:
+    - Sync: add fordownload support 
+    - FAAS: support "canceltxn" workflow action to forward findings to current faas
+    - FAAS: previousfaases: avoid same faasid and prevfaasid 
+    - FAAS: sketch: display tdno and pin info 
+    - FAAS: assessment: fix classification (ui)
+    - BATCHGR: additional support e.g. reassign, submission to prov, resend, etc. 
+    - BATCHGR: display as workflow list
+    - BATCHGR: revise FAAS from last revision only
+    - BATCHGR: items: additional filters
+    - CANCELFAAS: display txnno in list
+    - CANCELFAAS: access view faas 
+    - MODIFY: signatories: optional approval date
+    - MODIFY: owner: enable formalize option
+    - REDFLAG: display pin info
+    - REPORT: QRRPA: add revision year option
+    - REPORT: certification: improvement 
+    - REPORT: certification: property history 
+    - REPORT: certification: property tracer
+    - SUBDIVISION: fix improvement pin 
+    - Batchgr: items: add sortorder option
+    - Certification: workflow issuance support
+    - CancelFAAS: access to view FAAS  
+    - Report: Land specific classes: add taxpayer filter
+    - Report: List of Building
+    - Report: List of Machineries    
+    
+
+LANDTAX:
+    - Report: Delinquency Summary: add year range option
+    - Report: LandTax: integrate online (eor) collection    
+    - Monitoring: Ledgers with cancelled FAAS
