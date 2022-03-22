@@ -1,0 +1,18 @@
+<schema>
+	<element tablename="sys_email_queue">
+		<field name="objid" primary="true" searchable="true"/>
+		<field name="refid" required="true"/>
+
+		<!-- state: 0 - open, 1-sent 2-error -->
+		<field name="state" type="integer"/>
+		<field name="reportid" />
+		<field name="dtsent" />
+		<field name="to" />
+		<field name="subject" />
+		<field name="message" />
+		<field name="errmsg" />
+		<field name="connection" />		
+	</element>
+
+</schema>
+

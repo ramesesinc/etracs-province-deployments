@@ -1,0 +1,37 @@
+import com.rameses.annotations.*
+import com.rameses.util.*
+import com.rameses.common.*
+
+
+class EPaymentPartnerService   {
+
+
+    @Service(value='epayment/QueryService', connection="cloud-server")
+    def querySvc; 
+
+    @Service("DateService")
+    def dateSvc;
+
+    @DataContext("paymentpartner")
+    def pmtPartnerEm;
+
+    //this method will be intercepted by the other modules based on the txntype 
+    @ProxyMethod
+    public def syncPaymentPartner() {
+        def m = [_schemaname: "payment_partner"];
+        m.where = ["1=1"];        
+        def list = querySvc.getList( m );    
+        list.each {
+            def partner = pmtPartnerEm.find( [objid: it.objid] ).first();
+            if(!partner) {
+                def p = [:];
+                p.objid = it.objid;
+                p.name = it.name;
+                p.code = it.code;
+                p.indexno = it.code;
+                pmtPartnerEm.create( p );
+            }
+        }
+    }
+
+}

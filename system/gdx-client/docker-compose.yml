@@ -3,7 +3,7 @@ version: "3"
 services:
 
   gdx-proxy-server:
-    image: ramesesinc/gdx-proxy-server:v002
+    image: ramesesinc/gdx-proxy-server:v004
     container_name: gdx-proxy-server
     restart: always
     logging: 

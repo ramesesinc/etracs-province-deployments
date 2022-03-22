@@ -30,6 +30,23 @@ services:
       - ../../_custom/output:/apps/server/output
       - ../../_custom/fileserver:/fileserver
 
+      - ./client/reports:/apps/server/templates
+      - ../../_custom/module-client/etracs:/apps/server/templates/custom
+
+
+      - ./dev_modules/admin:/services/modules/admin
+      - ./dev_modules/etracs:/services/modules/etracs
+      - ./dev_modules/financial:/services/modules/financial
+      - ./dev_modules/jasper:/services/modules/jasper
+      - ./dev_modules/rules:/services/modules/rules
+
+      - ./dev_modules/treasury:/services/modules/treasury
+      - ./dev_modules/_treasury.conf:/apps/etracs25/modules.conf.d/_treasury.conf
+
+      ## mounted lib
+      - ../../_res/lib/osiris2-report.jar:/apps/server/lib/osiris2-report.jar
+      - ../../_res/lib/rameses-common2.jar:/apps/server/lib/rameses-common2.jar
+
       ## temporarily mounting a blank folder to disable old sync services
       - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
       - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-province-v254-notification-services.jar

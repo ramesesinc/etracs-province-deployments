@@ -1,0 +1,165 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.util.*;
+import treasury.utils.*;
+
+class EORRemittanceService {
+
+    @Service(value="PersistenceService", connection="etracs")
+    def etracsPersistenceSvc;
+
+    @Service('EORPostingService')
+    def postingSvc; 
+
+    @DataContext("eor_remittance")
+    def remEm;
+
+    @DataContext("eor_remittance_fund")
+    def remFundEm;
+
+    @DataContext("eor")
+    def eorEm;
+
+    @DataContext("eor_item")
+    def eorItemEm;
+
+    @Service("DateService")
+    def dateSvc;
+
+    @Service('EORNumberService')
+    def numSvc;
+
+    @Env
+    def env;
+
+    @DataContext("paymentpartner")
+    def paymentpartner;
+
+    @DataContext("eor_lockid")
+    def eor_lock;
+
+    @DataContext("eor_remittance_lockid")
+    def eor_rem_lock;
+
+
+    @ProxyMethod
+    public def create( pp ) {
+        if ( !pp.items ) 
+            throw new Exception("Please select at least one item to remit");
+        if ( pp.amount <= 0 )
+            throw new Exception("Amount to remit must be greater than 0.0 ");
+
+        pp.partner = paymentpartner.find([ objid: pp.partnerid.toString() ]).select('objid,code,name').first(); 
+
+        def m = [ state: "DRAFT" ]; 
+        m.dtcreated = dateSvc.getServerDate();
+        m.controlno = 'TMP-REM-'+ env.USERID;
+        m.controldate = pp.controldate;
+        m.partnerid = pp.partnerid;
+        m.amount = pp.amount;
+        m.createdby = [ objid:env.USERID, name: env.FULLNAME, title: env.JOBTITLE ];
+        m = remEm.create( m ); 
+
+        def remittanceid = m.objid; 
+        def updrem = [ remittanceid: remittanceid ]; 
+        def updlock = [ lockid: new java.rmi.server.UID().toString() ];  
+        def findby = [:]; 
+        pp.items.each{ 
+            findby.objid = it.objid; 
+            eor_lock.find( findby ).update( updlock ); 
+            eorEm.find( findby ).where('remittanceid IS NULL').update( updrem ); 
+
+            def test = eorEm.find( findby ).select('objid,remittanceid').first(); 
+            if ( !test?.objid )
+                throw new Exception("EOR No. "+ it.receiptno +" not found" ); 
+            if ( test.remittanceid.toString() != remittanceid ) 
+                throw new Exception("EOR No. "+ it.receiptno +" is already remitted to another transaction"); 
+        }
+
+        findby.clear(); 
+
+        def fundList = eorItemEm.select("item.fund.objid,amount:{SUM(amount)}")
+                                .where("parent.remittanceid = :remittanceid", updrem )
+                                .groupBy("item.fund.objid").list();
+        
+        def rf = [:]; 
+        def rftotal = 0.0; 
+        fundList.each {
+            rf.fund = etracsPersistenceSvc.read([ _schemaname: 'fund', objid: it.item.fund.objid ]);
+            rf.remittanceid = remittanceid;
+            rf.amount = it.amount; 
+            remFundEm.create( rf ); 
+            rftotal += rf.amount; 
+            rf.clear(); 
+        }
+
+        if ( m.amount != rftotal ) 
+            throw new Exception("Total remittance fund does not matched with the remitted amount"); 
+
+        m.partner = pp.partner; 
+        return m; 
+    }
+
+    @ProxyMethod
+    public def post( o ) { 
+        def findby = [ objid: o.objid ];
+        eor_rem_lock.find( findby ).update([ lockid: new java.rmi.server.UID().toString() ]); 
+
+        def reminfo = remEm.find( findby ).select('objid,state,controlno').first(); 
+        if ( !reminfo?.objid ) 
+            throw new Exception('EOR Remittance record not found'); 
+        if ( reminfo?.state.toString().toUpperCase() != 'DRAFT' ) 
+            throw new Exception('EOR Remittance record must be in DRAFT state'); 
+
+        remFundEm.find([ remittanceid: findby.objid ]).list().each{
+            if ( !it.bankaccount?.objid ) 
+                throw new Exception('Assign a Bank Account to '+ it.fund?.title); 
+            if ( !it.bankaccount?.title ) 
+                throw new Exception('Assign a Bank Account Name to '+ it.fund?.title); 
+
+            if ( !it.validation?.refno ) 
+                throw new Exception('Add a Validation Ref No. to '+ it.fund?.title); 
+            if ( !it.validation?.refdate ) 
+                throw new Exception('Add a Validation Ref Date to '+ it.fund?.title); 
+        }
+
+        def u = [ state: 'POSTED' ]; 
+        u.dtposted = dateSvc.getServerDate();
+        u.postedby = [objid: env.USERID, name: env.FULLNAME];
+        if ( reminfo.controlno.toString().toUpperCase().startsWith("TMP-REM")) {
+            u.controlno = numSvc.getNextRemittanceNumber( [:] ); 
+        }
+        remEm.find( findby ).update( u ); 
+
+        u.objid = o.objid; 
+        
+        postingSvc.post( u ); 
+
+        return u; 
+    } 
+
+    @ProxyMethod 
+    public void updateValidation( params ) {
+        def u = [ validation: params.validation ]; 
+        remFundEm.find([ objid: params.objid ]).update( u );
+    }    
+
+    @ProxyMethod 
+    public void updateBankAccount( params ) {
+        def u = [ bankaccount: params.bankaccount ]; 
+        remFundEm.find([ objid: params.objid ]).update( u );
+    }
+
+
+    @ProxyMethod 
+    public def getPaymentPartners() {
+        return paymentpartner.where('1=1').list(); 
+    } 
+
+
+    @ProxyMethod
+    public def findFund( param ) { 
+        if ( !param.objid ) return null; 
+        return etracsPersistenceSvc.read([ _schemaname: 'fund', objid: param.objid ]); 
+    } 
+}
