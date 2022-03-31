@@ -7,4 +7,4 @@ app:
   modules:
     - { order: 210, version: 2.02, file: "modules/entity/rameses-enterprise-entity.jar" }
     - { order: 211, version: 2.02, file: "modules/entity/rameses-enterprise-entity-tool.jar" }
-    - { order: 212, version: 2.04, file: "modules/entity/rameses-gov-etracs-entity.jar" }
+    - { order: 212, version: 2.05, file: "modules/entity/rameses-gov-etracs-entity.jar" }
