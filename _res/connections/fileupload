@@ -1,5 +1,5 @@
 provider=fileupload
-host=${fileupload_server_ip}
+host=107.21.113.74
 port=7000
 channel=${fileupload_channel}
 uploadDir=/fileserver/uploads

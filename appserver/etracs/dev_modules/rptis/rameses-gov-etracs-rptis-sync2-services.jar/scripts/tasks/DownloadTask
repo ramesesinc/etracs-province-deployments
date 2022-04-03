@@ -67,17 +67,22 @@ class DownloadTask {
         def syncdata = null;
         try {
             reader = fu.getObject(downloadfile.objid);
-            syncdata = reader.read();
-            syncdata.data = reader.read(); 
-            svc.receive(syncdata);
-            syncdata.dtcreated = dtSvc.serverDate;
-            em_sync_completed.save(syncdata);
+			syncdata = reader.read();
+			if (syncdata) {
+				syncdata.data = reader.read(); 
+				svc.receive(syncdata);
+				syncdata.dtcreated = dtSvc.serverDate;
+				em_sync_completed.save(syncdata);            
+			}
             reader.close();
             fu.delete(downloadfile.objid);
             em_sync_fordownload.find([objid: downloadfile.objid]).delete();
         } catch (e) {
-            println 'DownloadTask [ERROR] ' + e.message
-            if (syncdata) {
+			if (e.message.equalsIgnoreCase('Internal Server Error')) {
+				println 'Clearing ' + downloadfile.objid
+				fu.delete(downloadfile.objid);
+				em_sync_fordownload.find([objid: downloadfile.objid]).delete();
+			} else if (syncdata) {
                 syncdata.filekey = downloadfile.objid;
                 syncdata.error = ExceptionUtils.getStackTrace(e);
                 syncdata.info = syncdata.info ? syncdata.info : [:]
