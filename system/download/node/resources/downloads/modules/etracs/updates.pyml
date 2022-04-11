@@ -8,5 +8,5 @@ app:
       - { order: 203, version: 2.02, file: "modules/etracs/rameses-gov-etracs-sre-report.jar" }
       - { order: 204, version: 2.02, file: "modules/etracs/rameses-gov-etracs-tools.jar" }
       - { order: 205, version: 2.02, file: "modules/etracs/rameses-gov-etracs-signatory-template.jar" }
-      - { order: 206, version: 2.02, file: "modules/etracs/rameses-gov-lgu.jar" }
-      - { order: 207, version: 2.03, file: "modules/etracs/rameses-gov-lgu-treasury.jar" }
+      - { order: 206, version: 2.03, file: "modules/etracs/rameses-gov-lgu.jar" }
+      - { order: 207, version: 2.04, file: "modules/etracs/rameses-gov-lgu-treasury.jar" }
