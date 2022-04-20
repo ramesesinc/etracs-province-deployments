@@ -11,3 +11,4 @@ services:
       - ./dev_modules/rptis/rameses-gov-etracs-rptis-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-report-services.jar
       - ./dev_modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
       - ./dev_modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar
+      - ./dev_modules/rptis/rameses-gov-etracs-rptis-province-landtax-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-province-landtax-services.jar
