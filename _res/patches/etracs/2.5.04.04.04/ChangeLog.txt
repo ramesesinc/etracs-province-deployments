@@ -1,0 +1,14 @@
+255.04.04.04
+==========================================================
+
+LANDTAX:
+  - Collection: repost shares facility
+  - Billing: misspayment flag update
+  - Repost Share: support eor
+  - Ledger: Limit last year paid when fixed
+
+ASSESSOR:
+  - Report: FAAS: display stripping info in appraisal
+  - CancelFAAS: assign final sequenceno when approve
+  
+    

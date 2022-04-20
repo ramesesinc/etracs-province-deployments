@@ -1,0 +1,15 @@
+255.04.04.05
+==========================================================
+
+LANDTAX:
+
+ASSESSOR:
+  
+  - RPU: machinery: update actual use taxability support
+  - RPU: bldg: support gap base value computation
+  - SYNC2: download to local support
+  - BATCHGR: exclude item (province)
+  - REDFLAG: sync update for complex txn
+  - REDFLAG: management list
+
+  
