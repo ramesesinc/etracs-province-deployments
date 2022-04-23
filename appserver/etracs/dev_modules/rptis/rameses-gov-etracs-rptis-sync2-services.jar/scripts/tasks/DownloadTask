@@ -169,8 +169,8 @@ class DownloadTask {
         def org = sys_org.find([objid: syncdata.parent.orgid]).first();
         return [
             orgid: org?.objid,
-            orgcode: org?.code.replaceAll('-', ''),
-            orgclass: org.orgclass,
+            orgcode: org?.code?.replaceAll('-', ''),
+            orgclass: org?.orgclass,
         ]
     }    
 
