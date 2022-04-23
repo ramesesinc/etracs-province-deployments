@@ -166,12 +166,19 @@ class DownloadTask {
     }
 
     def getRemoteOrg(syncdata) {
-        def org = sys_org.find([objid: syncdata.parent.orgid]).first();
-        return [
-            orgid: org?.objid,
-            orgcode: org?.code?.replaceAll('-', ''),
-            orgclass: org?.orgclass,
+        def remoteorg = [
+            orgid: '-',
+            orgcode: '-',
+            orgclass: '-',
         ]
+        
+        def org = sys_org.find([objid: syncdata.parent.orgid]).first();
+        if (!org) return remoteorg;
+
+        remoteorg.orgid = org.objid;
+        remoteorg.orgcode = org.code.replaceAll('-', '');
+        remoteorg.orgclass = org.orgclass;
+        return remoteorg;
     }    
 
 }
