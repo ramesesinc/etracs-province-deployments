@@ -31,8 +31,10 @@ class ProvinceRPTLedgerInterceptor
     @After(pattern="RPTMainSyncDataService.receive", eval="#{args[0].reftype == 'rptledger' && 'CREATEMAPPING'.equalsIgnoreCase(args[0].action)}") 
     public void createRemoteMapping( evt ) {
         def params = evt.args[0].data
-
         def ledger = em_rptledger.select('objid,state').find([faasid:params.ledger.faasid]).first()
+        if (!ledger) {
+            ledger = em_rptledger.select('objid,state').find([tdno:params.ledger.tdno]).first()
+        }
         if (!ledger) {
             throw new Exception('Remote ledger does not exist.')
         }
