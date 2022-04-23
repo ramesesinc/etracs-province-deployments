@@ -656,7 +656,7 @@ go
 
 /* RPT CERTIFICATION WORKFLOW */
 delete from sys_wf_node where processname = 'rptcertification';
-delete from sys_wf_transition where processname = 'rptcertificastion';
+delete from sys_wf_transition where processname = 'rptcertification';
 
 INSERT INTO sys_wf_node ([name], [processname], [title], [nodetype], [idx], [salience], [domain], [role], [properties], [ui], [tracktime]) VALUES ('start', 'rptcertification', 'Start', 'start', '1', NULL, NULL, NULL, '[:]', '[fillColor:''#00ff00'',size:[32,32],pos:[102,127],type:''start'']', NULL)
 GO
