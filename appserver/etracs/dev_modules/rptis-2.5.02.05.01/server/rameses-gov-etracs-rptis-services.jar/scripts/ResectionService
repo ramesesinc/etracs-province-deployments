@@ -48,6 +48,9 @@ class ResectionService
 	@DataContext('rpu_type_suffix')
 	def em_suffix 
 
+	@Service('RPTUtil')
+	def util
+
 	
 
 	def TXNTYPE_TYPE = [objid: 'RS',  name: 'Resection']
@@ -133,11 +136,11 @@ class ResectionService
 
     @ProxyMethod
     public def validateNewParcel(item) {
-        def newsection = item.newfaas.section
+        def newsection = util.toInteger(item.newfaas.section)
         if (!newsection)
             throw new Exception('New Section is required.');
 
-    	def newparcel = item.newfaas.parcel
+    	def newparcel = util.toInteger(item.newfaas.parcel)
         if (!newparcel)
             throw new Exception('New Parcel is required.')
         if ('new' == item.pintype) {
@@ -149,7 +152,7 @@ class ResectionService
         }
 
         if ('land' == item.faas.rputype){
-        	item.newfaas.suffix = item.faas.suffix;
+        	item.newfaas.suffix = util.toInteger(item.faas.suffix);
         }
 
         return item
@@ -348,12 +351,14 @@ class ResectionService
 		throw new Exception('There are no current FAAS for this section.')
 
 		faases.each{faas ->
-			def ledger = em_rptledger.select('state,tdno').find([faasid: faas.objid]).first()
-			if ('PENDING'.equalsIgnoreCase(ledger.state)){
-				throw new Exception('Ledger for TD No. ' + ledger.tdno + ' is still pending.')
-			}
-			if ('CANCELLED'.equalsIgnoreCase(ledger.state)){
-				throw new Exception('Ledger for TD No. ' + ledger.tdno + ' has already been cancelled.')
+			if (!'PROVINCE'.equalsIgnoreCase(env.ORGCLASS)) {
+				def ledger = em_rptledger.select('state,tdno').find([faasid: faas.objid]).first()
+				if ('PENDING'.equalsIgnoreCase(ledger.state)){
+					throw new Exception('Ledger for TD No. ' + ledger.tdno + ' is still pending.')
+				}
+				if ('CANCELLED'.equalsIgnoreCase(ledger.state)){
+					throw new Exception('Ledger for TD No. ' + ledger.tdno + ' has already been cancelled.')
+				}
 			}
 
 			txnRefSvc.checkReference(faas.objid)
