@@ -1,14 +1,20 @@
 version: "3"
 
 services:
-  etracs-server:
-    volumes:
-      ## this is only a seed mapping, please do not remove
-      ##
-      - ../../_custom/.emptydir:/.emptydir
+   etracs-server:
+      volumes:
+         ## this is only a seed mapping, please do not remove
+         ##
+         - ../../_custom/.emptydir:/.emptydir
 
-      - ./dev_modules/rptis/rameses-gov-etracs-rptis-landtax-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-landtax-report-services.jar
-      - ./dev_modules/rptis/rameses-gov-etracs-rptis-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-report-services.jar
-      - ./dev_modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
-      - ./dev_modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar
-      - ./dev_modules/rptis/rameses-gov-etracs-rptis-province-landtax-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-province-landtax-services.jar
+         ## temporarily mounting a blank folder to disable old sync services
+         ## 
+         - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
+
+         ## mounted rptis updates
+         ## 
+         - ./dev_modules/rptis/rameses-gov-etracs-rptis-landtax-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-landtax-report-services.jar
+         - ./dev_modules/rptis/rameses-gov-etracs-rptis-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-report-services.jar
+         - ./dev_modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
+         - ./dev_modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar
+         - ./dev_modules/rptis/rameses-gov-etracs-rptis-province-landtax-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-province-landtax-services.jar
