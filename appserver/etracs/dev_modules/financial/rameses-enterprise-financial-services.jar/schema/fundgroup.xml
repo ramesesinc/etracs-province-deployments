@@ -1,9 +1,0 @@
-<schema>
-
-	<element tablename="fundgroup">
-		<field name="objid" primary="true"/>	
-		<field name="title" required="true"/>
-		<field name="indexno" type="integer"/>
-	</element>
-
-</schema>
