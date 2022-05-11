@@ -9,7 +9,9 @@ services:
          - ../../_custom/.emptydir:/.emptydir
 
          ## mounted rptis-2.5.02.05.01
+         ## 
          - ./dev_modules/rptis-2.5.02.05.01/server:/services/modules/rptis
 
          ## temporarily mounting a blank folder to disable old sync services
+         ## 
          - ../../_custom/.emptydir:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
