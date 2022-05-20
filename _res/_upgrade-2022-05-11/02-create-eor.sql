@@ -1,3 +1,5 @@
+drop database if exists eor;
+
 create database eor;
 
 use eor; 
@@ -432,12 +434,12 @@ CREATE TABLE `unpostedpayment` (
 -- ----------------------------
 -- View structure for vw_remittance_eor_item
 -- ----------------------------
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_remittance_eor_item` AS select `c`.`remittanceid` AS `remittanceid`,`r`.`controldate` AS `remittance_controldate`,`r`.`controlno` AS `remittance_controlno`,`cri`.`parentid` AS `receiptid`,`c`.`receiptdate` AS `receiptdate`,`c`.`receiptno` AS `receiptno`,`c`.`paidby` AS `paidby`,`c`.`paidbyaddress` AS `paidbyaddress`,`cri`.`item_fund_objid` AS `fundid`,`cri`.`item_objid` AS `acctid`,`cri`.`item_code` AS `acctcode`,`cri`.`item_title` AS `acctname`,`cri`.`remarks` AS `remarks`,`cri`.`amount` AS `amount` from ((`eor_remittance` `r` join `eor` `c` on((`c`.`remittanceid` = `r`.`objid`))) join `eor_item` `cri` on((`cri`.`parentid` = `c`.`objid`))) ;
+CREATE VIEW `vw_remittance_eor_item` AS select `c`.`remittanceid` AS `remittanceid`,`r`.`controldate` AS `remittance_controldate`,`r`.`controlno` AS `remittance_controlno`,`cri`.`parentid` AS `receiptid`,`c`.`receiptdate` AS `receiptdate`,`c`.`receiptno` AS `receiptno`,`c`.`paidby` AS `paidby`,`c`.`paidbyaddress` AS `paidbyaddress`,`cri`.`item_fund_objid` AS `fundid`,`cri`.`item_objid` AS `acctid`,`cri`.`item_code` AS `acctcode`,`cri`.`item_title` AS `acctname`,`cri`.`remarks` AS `remarks`,`cri`.`amount` AS `amount` from ((`eor_remittance` `r` join `eor` `c` on((`c`.`remittanceid` = `r`.`objid`))) join `eor_item` `cri` on((`cri`.`parentid` = `c`.`objid`))) ;
 
 -- ----------------------------
 -- View structure for vw_remittance_eor_share
 -- ----------------------------
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_remittance_eor_share` AS select `c`.`remittanceid` AS `remittanceid`,`r`.`controldate` AS `remittance_controldate`,`r`.`controlno` AS `remittance_controlno`,`cri`.`parentid` AS `receiptid`,`c`.`receiptdate` AS `receiptdate`,`c`.`receiptno` AS `receiptno`,`c`.`paidby` AS `paidby`,`c`.`paidbyaddress` AS `paidbyaddress`,`cri`.`refitem_objid` AS `refacctid`,`cri`.`refitem_code` AS `refacctcode`,`cri`.`refitem_title` AS `refaccttitle`,`cri`.`payableitem_objid` AS `acctid`,`cri`.`payableitem_code` AS `acctcode`,`cri`.`payableitem_title` AS `acctname`,`cri`.`share` AS `amount` from ((`eor_remittance` `r` join `eor` `c` on((`c`.`remittanceid` = `r`.`objid`))) join `eor_share` `cri` on((`cri`.`parentid` = `c`.`objid`))) ;
+CREATE VIEW `vw_remittance_eor_share` AS select `c`.`remittanceid` AS `remittanceid`,`r`.`controldate` AS `remittance_controldate`,`r`.`controlno` AS `remittance_controlno`,`cri`.`parentid` AS `receiptid`,`c`.`receiptdate` AS `receiptdate`,`c`.`receiptno` AS `receiptno`,`c`.`paidby` AS `paidby`,`c`.`paidbyaddress` AS `paidbyaddress`,`cri`.`refitem_objid` AS `refacctid`,`cri`.`refitem_code` AS `refacctcode`,`cri`.`refitem_title` AS `refaccttitle`,`cri`.`payableitem_objid` AS `acctid`,`cri`.`payableitem_code` AS `acctcode`,`cri`.`payableitem_title` AS `acctname`,`cri`.`share` AS `amount` from ((`eor_remittance` `r` join `eor` `c` on((`c`.`remittanceid` = `r`.`objid`))) join `eor_share` `cri` on((`cri`.`parentid` = `c`.`objid`))) ;
 
 
 SET FOREIGN_KEY_CHECKS=1;
@@ -447,13 +449,12 @@ INSERT INTO `paymentpartner` (`objid`, `code`, `name`, `branch`, `contact`, `mob
 INSERT INTO `paymentpartner` (`objid`, `code`, `name`, `branch`, `contact`, `mobileno`, `phoneno`, `email`, `indexno`) VALUES ('PAYMAYA', '103', 'PAYMAYA', NULL, NULL, NULL, NULL, NULL, '103');
 INSERT INTO `paymentpartner` (`objid`, `code`, `name`, `branch`, `contact`, `mobileno`, `phoneno`, `email`, `indexno`) VALUES ('GCASH', '104', 'GCASH', NULL, NULL, NULL, NULL, NULL, '104');
 
-
-
 INSERT INTO `epayment_plugin` (`objid`, `connection`, `servicename`) VALUES ('bpls', 'bpls', 'OnlineBusinessBillingService');
 INSERT INTO `epayment_plugin` (`objid`, `connection`, `servicename`) VALUES ('rptcol', 'rpt', 'OnlineLandTaxBillingService');
 INSERT INTO `epayment_plugin` (`objid`, `connection`, `servicename`) VALUES ('rpttaxclearance', 'landtax', 'OnlineRealtyTaxClearanceService');
 
-INSERT INTO `sys_email_template` (`objid`, `subject`, `message`) VALUES ('eor', 'EOR No ${receiptno}', 'Dear valued customer <br>Please see attached Electronic OR. This is an electronic transaction. Do not reply');
+INSERT INTO `sys_email_template` (`objid`, `subject`, `message`) 
+VALUES ('eor', 'EOR No ${receiptno}', 'Dear valued customer <br>Please see attached Electronic OR. This is an electronic transaction. Do not reply');
 
 
 
