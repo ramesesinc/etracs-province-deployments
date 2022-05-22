@@ -1,0 +1,9 @@
+2.5.04.05
+==========================================================
+
+LANDTAX:
+    INCENTIVE: support decimal rate 
+
+ASSESSOR:
+    REPORT: FAAS MasterList : fix orderby error
+    REPORT: Statement of Valuation: additional filters

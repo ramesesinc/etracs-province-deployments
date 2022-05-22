@@ -1,19 +1,16 @@
 version: "3"
 
 services:
-   etracs-server:
-      volumes:
-         ## this is only a seed mapping, please do not remove
-         ## 
-         - ../../_custom/.emptydir:/.emptydir
+  etracs-server:
+    volumes:
+      ## this is only a seed mapping, please do not remove
+      ##
+      - ../../_custom/.emptydir:/.emptydir
 
-         ## temporarily mounting a blank folder to disable old sync services
-         ## 
-         - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
-         - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-province-v254-notification-services.jar
+      ## temporarily mounting a blank folder to disable old sync services
+      ##
+      - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
+      - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-province-v254-notification-services.jar
 
-         ## temporarily mounting of dev-modules
-         ## 
-         - ./dev_modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
-         - ./dev_modules/rptis/rameses-gov-etracs-rptis-report-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-report-services.jar
-         - ./dev_modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-sync2-services.jar
+      ## temporarily mounting of dev-modules
+      ##
