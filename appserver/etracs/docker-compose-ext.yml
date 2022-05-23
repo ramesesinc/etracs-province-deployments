@@ -14,3 +14,4 @@ services:
 
       ## temporarily mounting of dev-modules
       ##
+      - ./dev_modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
