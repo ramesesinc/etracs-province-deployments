@@ -1,13 +1,16 @@
 version: "3"
 
 services:
+  etracs-server:
+    volumes:
+      ## this is only a seed mapping, please do not remove
+      ##
+      - ../../_custom/.emptydir:/.emptydir
 
-   etracs-server:
-      volumes:
-         ## this is only a seed mapping, please do not remove
-         ## 
-         - ../../_custom/.emptydir:/.emptydir
+      ## temporarily mounting a blank folder to disable old sync services
+      ##
+      - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
 
-         ## temporarily mounting a blank folder to disable old sync services
-         ## 
-         - ./blank:/services/modules/rptis/rameses-gov-etracs-rptis-sync-services.jar
+      ## dev_modules mapping: to be removed on next docker image
+      ##
+      - ./dev_modules/rptis/rameses-gov-etracs-rptis-services.jar:/services/modules/rptis/rameses-gov-etracs-rptis-services.jar
