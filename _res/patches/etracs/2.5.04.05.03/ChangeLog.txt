@@ -1,0 +1,10 @@
+2.5.04.05.04
+==========================================================
+
+LANDTAX:
+    -
+
+ASSESSOR:
+    - Subdivision: convert report sql to view
+    - Consolidation: convert report sql to view
+    

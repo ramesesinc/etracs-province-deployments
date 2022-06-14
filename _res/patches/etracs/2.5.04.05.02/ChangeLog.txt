@@ -1,0 +1,12 @@
+2.5.04.05.02
+==========================================================
+
+LANDTAX:
+    -
+
+ASSESSOR:
+    - FAAS: txn: support for Change RPU Type
+    - Examination: add transaction/tracking no.
+    - Report: Ocular inspection: display any number of images
+    - Report: List of Idle Lands
+    

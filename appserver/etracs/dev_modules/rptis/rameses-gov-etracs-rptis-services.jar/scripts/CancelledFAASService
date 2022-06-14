@@ -344,7 +344,7 @@ class CancelledFAASService
         if (!ledger) 
             return 
 
-        def txndate = entity.txndate ? entity.txndate : dateSvc.serverDate
+        entity.txndate = entity.txndate ? entity.txndate : dateSvc.serverDate
         def txnyear = dateSvc.getYear(dateSvc.parse('yyyy-MM-dd', entity.txndate))
         if (entity.lasttaxyear && entity.lasttaxyear > 0) {
             txnyear = entity.lasttaxyear

@@ -166,7 +166,6 @@ class FAASService
 			}
 
 			rpuSvc.validateSuffix( info.rputype, info.suffix )
-			info.fullpin = info.rp.pin + '-' + info.suffix 
 		}
 
 		def faas = initCapture(info)
