@@ -88,7 +88,7 @@ class DownloadTask {
             } catch(err) {
                 err.printStackTrace();
                 if (err.message.startsWith("ERROR 500")) {
-                    em_sync_fordownload.find([objid: it.objid]).update([error: 1]);
+                    em_sync_fordownload.find([objid: it.objid]).delete();
                 } else {
                     try {
                         def reader = fu.readObject(it.objid);
