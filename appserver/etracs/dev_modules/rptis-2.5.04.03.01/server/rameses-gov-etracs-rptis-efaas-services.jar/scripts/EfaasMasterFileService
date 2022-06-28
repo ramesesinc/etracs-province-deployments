@@ -1,0 +1,72 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+public class EfaasMasterFileService
+{
+	@Service("PropertyClassificationService")
+	def propertyClassificationSvc;
+
+	@Service("BldgKindService")
+	def bldgKindSvc;
+
+	@Service("MaterialService")
+	def materialSvc;
+
+	@Service("StructureService")
+	def structureSvc;
+
+	@Service("MachineService")
+	def machineSvc;
+
+	@Service("PlantTreeService")
+	def plantTreeSvc;
+
+	@Service("MiscItemService")
+	def miscItemSvc;
+
+	@Service("RPTParameterService")
+	def paramSvc;
+
+	@ProxyMethod
+	def getPropertyClassifications(params){
+		return propertyClassificationSvc.getClassifications(params);
+	}
+
+	@ProxyMethod
+	def getBldgKinds(params){
+		return bldgKindSvc.getBldgKinds(params);
+	}
+
+	@ProxyMethod
+	def getMaterials(params){
+		return materialSvc.getMaterials(params);
+	}
+
+	@ProxyMethod
+	def getStructures(params){
+		return structureSvc.getStructures(params);
+	}
+
+	@ProxyMethod
+	def getMachines(params){
+		return machineSvc.getMachines(params);
+	}
+
+	@ProxyMethod
+	def getPlantTrees(params){
+		return plantTreeSvc.getPlantTrees(params);
+	}
+
+	@ProxyMethod
+	def getMiscItems(params){
+		return miscItemSvc.getMiscItems(params);
+	}
+
+	@ProxyMethod
+	def getRPTParameters(params){
+		return paramSvc.getRPTParameters(params);
+	}
+
+}

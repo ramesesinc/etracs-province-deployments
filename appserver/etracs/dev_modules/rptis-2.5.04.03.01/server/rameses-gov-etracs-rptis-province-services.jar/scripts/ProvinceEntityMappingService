@@ -1,0 +1,43 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceEntityMappingService
+{   
+	@Env 
+	def env 
+
+	@DataContext('entity')
+	def em_entity
+
+	@DataContext('entity_mapping')
+	def em_mapping
+
+
+	@ProxyMethod 
+	public def getEntities(params) {
+		if (!params.searchtext) {
+			throw new Exception('Please specify a search criteria.')
+		}
+		params.searchtext += '%'
+		return em_mapping.getEntities(params)
+	}
+
+	@ProxyMethod
+	public void saveMapping(items) {
+		try {
+			items.each{
+				em_mapping.create(it)
+				em_entity.find([objid: it.objid]).update([state: 'INACTIVE'])
+			}
+		} catch(e) {
+			//ignore dups 
+		}
+	}
+
+	@ProxyMethod
+	public def removeEntity(mapping) {
+		em_mapping.find([objid: mapping.objid]).delete()
+		em_entity.find([objid: mapping.objid]).update([state: 'ACTIVE'])
+	}
+
+}

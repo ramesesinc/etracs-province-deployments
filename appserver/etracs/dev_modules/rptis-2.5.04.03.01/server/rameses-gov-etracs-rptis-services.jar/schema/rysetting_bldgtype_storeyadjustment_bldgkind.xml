@@ -1,0 +1,10 @@
+<schema>
+    <element tablename="bldgtype_storeyadjustment_bldgkind">
+        <field name="objid" primary="true" prefix="BTSB" />
+        <field name="bldgrysettingid" required="true" />
+        <field name="parentid" required="true" />
+        <field name="bldgtypeid" required="true" />
+        <field name="floorno" required="true" type="integer" />
+        <field name="bldgkindid" required="true" />
+	</element>
+</schema>

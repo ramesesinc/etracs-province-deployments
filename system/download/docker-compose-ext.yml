@@ -3,3 +3,7 @@ version: "3"
 services:
 
    download-node-server:
+      volumes:
+         ## mounted rptis-2.5.04.03.01
+         ## 
+         - ../../appserver/etracs/dev_modules/rptis-2.5.04.03.01/client:/apps/server/public/resources/downloads/modules/rptis
