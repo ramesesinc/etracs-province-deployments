@@ -9,4 +9,4 @@ order by cadastrallotno
 select * 
 from vw_report_consolidated_land
 where consolidationid = $P{objid}
-order by rp.cadastrallotno
+order by cadastrallotno
