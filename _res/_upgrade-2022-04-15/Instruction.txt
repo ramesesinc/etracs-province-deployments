@@ -1,0 +1,40 @@
+Upgrade Scripts
+=========================
+
+To upgrade images without first stopping the existing server, 
+we will create a copy of docker as docker-new, 
+perform images update and then swap when ready.
+
+1. Copy docker folder to docker-new
+
+  $ cp -rp docker docker-new 
+
+
+2. Pull docker images
+
+  $ cd docker-new/bin
+  $ git pull
+  $ sh update-docker-images.sh 
+
+3. Stop old docker 
+
+  $ cd ../docker/bin 
+  $ sh stop.sh 
+
+4. Run the following upgrade scripts preferably in Navicat. 
+
+   Fix possible error   
+    - _res\_upgrade-2022-04-15\01-patch-etracs.sql
+    - _res\_upgrade-2022-04-15\02-create-eor-db.sql
+    - _res\_upgrade-2022-04-15\03-patch-etracs-rptis.sql
+
+5. Swap docker version 
+
+  $ mv docker docker-old
+  $ mv docker-new docker
+
+6. Start docker servers   
+
+  $ cd docker/bin 
+  $ sh start.sh
+
