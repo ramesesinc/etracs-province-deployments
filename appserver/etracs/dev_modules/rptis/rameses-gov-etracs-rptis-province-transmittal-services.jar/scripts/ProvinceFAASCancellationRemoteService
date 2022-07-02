@@ -1,0 +1,26 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*
+
+class ProvinceFAASCancellationRemoteService
+{   
+	@Env 
+	def env 
+
+	@Service('CancelledFAASService')
+	def svc
+
+	@ActiveDB('cancelledfaas')
+	def em 
+
+	public void postApprovedFaasCancellation(cancelledfaas){
+		def cf = em.findById(cancelledfaas)
+		if (!cf){
+			cancelledfaas.state = 'FORAPPROVAL'
+			svc.createCancelledFaas(cancelledfaas)
+		}
+
+		svc.approveFaasCancellation(cancelledfaas)
+		println 'FAAS Cancellation submitted by the municipality has been successfully posted.'
+	}
+}

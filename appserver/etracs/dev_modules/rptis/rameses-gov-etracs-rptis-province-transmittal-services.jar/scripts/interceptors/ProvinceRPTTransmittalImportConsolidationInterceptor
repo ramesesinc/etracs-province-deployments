@@ -1,0 +1,38 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class ProvinceRPTTransmittalImportConsolidationInterceptor
+{
+	@Env 
+	def env 
+
+	@Service('RPTTransmittalImportService')
+	def importSvc 
+
+	@Service('ProvinceConsolidationRemoteService')
+	def provSvc 
+
+	@Service('RPTUtil')
+	def util
+
+
+	@After(pattern='RPTTransmittalImportService.importData', eval="#{'consolidation'.equalsIgnoreCase(args[0].filetype) && 'FORAPPROVAL'.equalsIgnoreCase(args[0].type)}")
+	public void postForApproval(evt){
+		def consolidationdata = evt.args[1].consolidationdata 
+		def transmittalitem = evt.args[1].transmittalitem
+
+		try{
+			provSvc.postConsolidationForApproval(consolidationdata)
+			transmittalitem.status = 'FORAPPROVAL'
+			importSvc.log(transmittalitem)
+		}
+		catch(e){
+			transmittalitem.status = 'ERROR'
+			transmittalitem.remarks = e.message 
+			importSvc.log(transmittalitem)
+		}
+	}
+
+}
+

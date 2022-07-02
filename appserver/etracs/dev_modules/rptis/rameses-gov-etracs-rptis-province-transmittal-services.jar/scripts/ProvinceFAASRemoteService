@@ -1,0 +1,122 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+import com.rameses.services.extended.*
+
+class ProvinceFAASRemoteService
+{   
+	@Env 
+	def env 
+
+	@Service('FAASWorkflowService')
+	def workflowSvc
+
+	@Service('FAASService')
+	def faasSvc
+
+	@Service('FAASSupportService')
+	def supportSvc 
+
+	@Service('NotificationService')
+	def notificationService
+
+	
+	@ProxyMethod
+	public void postDataCapturedFaas(faas){
+		supportSvc.saveFaasData(faas)
+		println 'Data captured FAAS has been successfully created.'
+	}
+
+
+	@ProxyMethod
+	public void postManualApprovedTransaction(faas){
+		def oldfaas = supportSvc.findFaasById(faas)
+		if (!oldfaas){
+			supportSvc.saveFaasData(faas)
+			faasSvc.approveFaasByMunicipality(faas)
+			println 'Manually Approved FAAS has been successfully created.'
+		}
+	}
+
+
+	@ProxyMethod
+	public void postMunicipalityApprovedFaas(faas){
+		def oldfaas = supportSvc.findFaasById(faas)
+		if (!oldfaas){
+			supportSvc.saveFaasData(faas)
+			faasSvc.approveFaasByMunicipality(faas)
+		}
+
+		faas.affectedfaases.each{
+			postMunicipalityApprovedFaas(it)
+			faasSvc.cancelPreviousFaases(it)
+		}
+
+		println 'Municipality approved FAAS successfully posted.'
+	}
+
+
+	@ProxyMethod
+	public void postFaasForProvinceApproval(faas){
+		def oldfaas = supportSvc.findFaasById(faas)
+		if (!oldfaas){
+			removeOpenTask(faas)
+			supportSvc.saveFaasData(faas)
+			startWorkflow(faas)
+			println 'FAAS for province approval has been successfully created.'
+		}
+		else {
+			faas.tasks = []
+			supportSvc.saveFaasData(faas)
+			println 'FAAS for province approval has been successfully updated.'
+		}
+	}
+
+	public void postFaasImages(faas){
+		supportSvc.saveImageData(faas)
+		println 'Saving FAAS images .... done'
+	}
+
+	public void postRequirements(faas){
+		supportSvc.saveRequirements(faas)
+		supportSvc.saveImageData(faas)
+	}
+
+	public void postApprovedFaasCancellation(faascancellation){
+		
+	}
+
+	void startWorkflow(faas){
+		def tasks = workflowSvc.start([refid:faas.objid, data:faas])
+		if (tasks)
+			faas.taskid = tasks[0].objid
+
+		notifyGroup(faas)
+	}
+	
+	void removeOpenTask(faas){
+		if (faas.tasks){
+			def opentask = faas.tasks.find{it.enddate == null}
+			faas.tasks.remove(opentask)
+		}
+	}
+
+	void notifyGroup(faas){
+		def sender = [userid:env.USERID, name:env.FULLNAME]
+		if (env.REQUESTER){
+			sender.userid = env.REQUESTER.USERID 
+			sender.name = (env.REQUESTER.FULLNAME ? env.REQUESTER.FULLNAME : env.REQUESTER.USER)
+		}
+
+        def msg = [
+            objid     		: faas.objid,
+            senderid  		: sender.userid,
+            sender    		: sender.name,
+            recipientid   	: 'assign-receiver',
+            recipienttype 	: 'group',
+            message   		: 'FAAS No. ' + (faas.tdno ? faas.tdno : faas.utdno) + '    (assign-receiver) submitted by ' + sender.name + '.',
+            filetype  		: 'faas',
+            data 	  		: [objid: faas.objid, taskid:faas.taskid],
+        ]
+        notificationService.addMessage(msg);
+	}
+}

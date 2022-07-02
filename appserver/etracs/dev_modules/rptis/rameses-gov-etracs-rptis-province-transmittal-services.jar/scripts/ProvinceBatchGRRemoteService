@@ -1,0 +1,80 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*;
+
+class ProvinceBatchGRRemoteService
+{   
+	@Env 
+	def env 
+
+	@Service('NotificationService')
+	def notificationService
+
+	@Service('BatchGRSupportService')
+	def supportSvc
+
+	@Service('BatchGRWorkflowService')
+	def workflowSvc
+
+	@DataContext('batchgr_task')
+	def em_batchgr_task
+
+
+	@ProxyMethod
+	public void postTransmittalForApproval(batchgr){
+		postForApproval(batchgr)
+	}
+
+
+	@ProxyMethod
+	public void postForApproval(batchgr){
+		supportSvc.postData(batchgr)
+		def currtask = em_batchgr_task.select('objid').where('refid = :objid and enddate is null', batchgr).first()
+		if (!batchgr._resubmitted || !currtask){
+			workflowSvc.start([refid:batchgr.objid, data:batchgr])
+			notifyGroup(batchgr)
+		}
+		println 'Submitted batch gr has been successfully created.'
+	}
+
+	@ProxyMethod
+	public void postExaminations(data) {
+		supportSvc.postExaminations(data)
+	}
+
+	@ProxyMethod
+	public void postRequirements(data) {
+		supportSvc.postRequirements(data)
+	}
+
+	@ProxyMethod
+	public void postRequirement(data) {
+		supportSvc.postRequirement(data)
+	}
+
+	@ProxyMethod
+	public void postFaasData(faas) {
+		supportSvc.postFaasData(faas)	
+	}
+
+
+	void notifyGroup(batchgr){
+		def sender = [userid:env.USERID, name:env.FULLNAME]
+		if (env.REQUESTER){
+			sender.userid = env.REQUESTER.USERID 
+			sender.name = (env.REQUESTER.FULLNAME ? env.REQUESTER.FULLNAME : env.REQUESTER.USER)
+		}
+
+        def msg = [
+            objid     		: batchgr.objid,
+            senderid  		: sender.userid,
+            sender    		: sender.name,
+            recipientid   	: 'assign-receiver',
+            recipienttype 	: 'group',
+            message   		: 'Batch GR No. ' + batchgr.txnno + ' submitted by ' + sender.name + '   (assign-receiver) ',
+            filetype  		: "batchgr",
+            data 	  		: [objid: batchgr.objid],
+        ]
+        notificationService.addMessage(msg);
+	}
+
+}

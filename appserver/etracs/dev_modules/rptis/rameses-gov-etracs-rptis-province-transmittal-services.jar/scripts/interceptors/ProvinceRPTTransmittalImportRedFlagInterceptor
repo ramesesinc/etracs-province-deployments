@@ -1,0 +1,41 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class ProvinceRPTTransmittalImportRedFlagInterceptor
+{
+	@Env 
+	def env 
+
+	@Service('RPTTransmittalImportService')
+	def importSvc 
+
+	@Service('ProvinceRedFlagService')
+	def provSvc 
+
+	@Service('FAASChangeInfoService')
+	def changeinfoSvc 
+
+	
+	@After(pattern='RPTTransmittalImportService.importData', eval="#{'rptredflag'.equalsIgnoreCase(args[0].filetype) && 'FORAPPROVAL'.equalsIgnoreCase(args[0].type) && 'APPROVED'.equalsIgnoreCase(args[0].state)}")
+	public void postResolveRedFlag(evt){
+		def redflag = evt.args[1].redflag 
+		def transmittalitem = evt.args[1].transmittalitem
+		def changeinfo = evt.args[1].changeinfo
+
+		try{
+			changeinfo.isremote = true 
+			changeinfoSvc.updateInfo(changeinfo)
+			provSvc.resolveRedFlag(redflag)
+			transmittalitem.status = 'RESOLVED'
+			importSvc.log(transmittalitem)
+		}
+		catch(e){
+			transmittalitem.status = 'ERROR'
+			transmittalitem.remarks = e.message 
+			importSvc.log(transmittalitem)
+		}
+	}
+
+}
+

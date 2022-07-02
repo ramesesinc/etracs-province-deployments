@@ -1,0 +1,105 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class ProvinceRPTTransmittalInterceptor
+{
+	@Env 
+	def env 
+
+	@DataContext('rpttransmittal_item')
+	def db_rpttransmittal_item
+
+
+	@After(pattern='FAASService.approveFaas', index=1005)
+	public void approveTransmittalItem(evt){
+		def faas = evt.result 
+
+		def updateditem = [:]
+		updateditem.state = faas.state
+		updateditem.status = 'APPROVED'
+		updateditem.remarks = 'APPROVED BY ' + env.FULLNAME 
+
+		db_rpttransmittal_item
+				.where("refid = :refid and state <> 'CURRENT'", [refid:faas.objid])
+				.update(updateditem)
+	}
+
+
+	@After(pattern='FAASService.disapproveOnlineFaas', index=1000)
+	public void disapproveTransmittalItem(evt){
+		def faas = evt.result 
+
+		def updateditem = [:]
+		updateditem.disapproved = true
+		updateditem.disapprovedby = faas.disapproveinfo.disapprovedby
+		updateditem.remarks = faas.disapproveinfo.reason
+		updateditem.status = 'DISAPPROVED'
+		
+		db_rpttransmittal_item
+				.where("refid = :refid and state <> 'CURRENT'", [refid:faas.objid])
+				.update(updateditem)
+	}
+
+
+	@After(pattern='SubdivisionService.approve', index=1005)
+	public void approveSubdivisionTransmittalItem(evt){
+		def subdivision = evt.result 
+
+		def updateditem = [:]
+		updateditem.state = subdivision.state
+		updateditem.status = 'APPROVED'
+		updateditem.remarks = 'APPROVED BY ' + env.FULLNAME 
+
+		db_rpttransmittal_item
+				.where("refid = :refid and state <> 'APPROVED'", [refid:subdivision.objid])
+				.update(updateditem)
+	}
+
+
+	@After(pattern='ConsolidationService.approve', index=1005)
+	public void approveConsolidationTransmittalItem(evt){
+		def consolidation = evt.result 
+
+		def updateditem = [:]
+		updateditem.state = consolidation.state
+		updateditem.status = 'APPROVED'
+		updateditem.remarks = 'APPROVED BY ' + env.FULLNAME 
+
+		db_rpttransmittal_item
+				.where("refid = :refid and state <> 'APPROVED'", [refid:consolidation.objid])
+				.update(updateditem)
+	}
+
+	@After(pattern='CancelledFAASService.approve', index=1005)
+	public void approveCancelledFaasTransmittalItem(evt){
+		def cancelledfaas = evt.result 
+
+		def updateditem = [:]
+		updateditem.state = cancelledfaas.state
+		updateditem.status = 'APPROVED'
+		updateditem.remarks = 'APPROVED BY ' + env.FULLNAME 
+
+		db_rpttransmittal_item
+				.where("refid = :refid and state <> 'APPROVED'", [refid:cancelledfaas.objid])
+				.update(updateditem)
+	}
+
+	@After(pattern='CancelledFAASService.deleteCancelledFaas', index=100000)
+	public void disapproveCancelledFaasTransmittalItem(evt){
+		def cancelledfaas = evt.result 
+
+		def updateditem = [:]
+		updateditem.disapproved = true
+		updateditem.disapprovedby = [name:env.FULLNAME]
+		updateditem.remarks = cancelledfaas.disapprovemessage
+		updateditem.status = 'DISAPPROVED'
+		
+		db_rpttransmittal_item
+				.where("refid = :refid and state <> 'APPROVED'", [refid:cancelledfaas.objid])
+				.update(updateditem)
+	}
+
+
+}
+
