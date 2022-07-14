@@ -14,7 +14,9 @@
 
 		<field name="allowpaymentorder" />
 		<field name="allowkiosk"/>
-      <field name="allowcreditmemo"/>
+      	<field name="allowcreditmemo"/>
+      	<field name="connection"/>
+      	<field name="servicename"/>
 
 		<field name="sortorder"/> 
 		<field name="orgid"/> 

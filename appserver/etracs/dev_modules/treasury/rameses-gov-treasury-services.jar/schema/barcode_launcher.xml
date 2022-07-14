@@ -1,0 +1,12 @@
+<schema>
+	<element tablename="barcode_launcher">
+		<field name="objid" primary="true" visible="true"/>
+		<field name="connection" />
+		<field name="title" />
+		<field name="paymentorder" type="integer"/>
+		<complex name="collectiontype" ref="collectiontype" jointype="many-to-one" required="false">
+			<key field="collectiontypeid" target="objid" />
+		</complex>	
+	</element>
+</schema>
+

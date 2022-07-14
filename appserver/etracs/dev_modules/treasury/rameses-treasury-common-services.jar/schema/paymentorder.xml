@@ -1,0 +1,38 @@
+<schema>
+	<element tablename="paymentorder">
+		<field name="objid" primary="true" visible="true" searchable="true" caption="Trace No"/>
+		<field name="txndate" type="timestamp" required="true" />
+		<field name="payer_objid"  />
+		<field name="payer_name" />
+		<field name="paidby" required="true" />
+		<field name="paidbyaddress" required="true" />
+		<field name="particulars" />
+		<field name="amount" type="decimal" required="true" />
+		<field name="expirydate" type="date" required="true" />
+		<field name="refid"  />
+		<field name="refno" />
+		<field name="locationid" />
+		<field name="origin" />
+		<field name="state" />
+
+		<field name="issuedby_objid" />
+		<field name="issuedby_name" caption="Issued By"/>
+
+		<field name="origin" />
+		<field name="email" />
+		<field name="mobileno" />
+
+		<complex name="params" serializer="default" required="true"/>
+
+		<complex name="type" ref="paymentorder_type" jointype="many-to-one" required="true">
+			<key field="typeid" target="objid"/>
+		</complex>
+		<complex name="items" serializer="default" required="false" type="list" />
+		
+	</element>
+</schema>
+
+
+
+
+

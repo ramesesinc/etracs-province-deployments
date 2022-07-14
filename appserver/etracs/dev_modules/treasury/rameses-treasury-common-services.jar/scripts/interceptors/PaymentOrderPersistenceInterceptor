@@ -1,0 +1,32 @@
+import com.rameses.annotations.*;
+import java.rmi.server.*;
+import com.rameses.util.*;
+
+class PaymentOrderPersistenceInterceptor {
+
+	@Service("PaymentOrderService")
+	def pmtOrderSvc;
+
+	@Before(pattern="PersistenceService.create", eval="#{args[0]._schemaname == 'paymentorder'}")
+	public def beforeCreatePaymentOrder(def evt) { 
+		def r = evt.args[0];
+		r = pmtOrderSvc.initData( r );
+	} 
+
+	@After(pattern="PersistenceService.create", eval="#{args[0]._schemaname == 'paymentorder'}")
+	public def afterCreatePaymentOrder(def evt) { 
+		def a = evt.args[0];
+		def result = evt.result;
+		def bc = pmtOrderSvc.getBarcodePrefix( a._connection );
+		result.txncode = bc?.barcodeid + ":" + result.objid;
+	}	
+
+	@After(pattern="PersistenceService.read", eval="#{ args[0]._schemaname == 'paymentorder' }" )
+	public void beforeRead(def evt) {
+		def a = evt.args[0];
+		def result = evt.result;
+		def bc = pmtOrderSvc.getBarcodePrefix( a._connection );
+		result.txncode = bc?.barcodeid + ":" + result.objid;
+	}
+
+}

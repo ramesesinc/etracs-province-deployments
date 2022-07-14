@@ -25,7 +25,9 @@ SELECT
    af.baseunit AS af_baseunit,
    c.allowpaymentorder AS allowpaymentorder,
    c.allowkiosk AS allowkiosk,
-   c.allowcreditmemo
+   c.allowcreditmemo,
+   c.connection,
+   c.servicename
 FROM collectiontype_org o
 INNER JOIN  collectiontype c on c.objid = o.collectiontypeid
 INNER JOIN af ON af.objid = c.formno
@@ -57,7 +59,9 @@ SELECT
    af.baseunit AS af_baseunit,
    c.allowpaymentorder AS allowpaymentorder,
    c.allowkiosk AS allowkiosk,
-   c.allowcreditmemo 
+   c.allowcreditmemo,
+   c.connection,
+   c.servicename 
 FROM collectiontype c 
 INNER JOIN af ON af.objid = c.formno
 LEFT JOIN collectiontype_org o ON c.objid = o.collectiontypeid

@@ -1,17 +1,10 @@
 import com.rameses.annotations.*;
 import com.rameses.util.*;
-import java.rmi.server.*;
 
 class PaymentOrderInterceptor {
 
-	@DataContext("paymentorder")
-	def svc;
-
 	@Service("DateService")
 	def dateSvc;
-
-	@Service('OrgService')
-	def orgSvc; 
 
 	@Service("SequenceService") 
 	def seqSvc;

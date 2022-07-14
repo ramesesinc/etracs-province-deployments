@@ -21,9 +21,6 @@ class CashReceiptService  {
 	@DataContext('cashreceipt_void') 
 	def cashreceipt_void;
 
-	@DataContext("paymentorder")
-   	def paymentOrderEm;
-		
    	@DataContext("cashreceiptpayment_noncash")
    	def cashRctPmt;
 
@@ -39,8 +36,11 @@ class CashReceiptService  {
 	@Service("DateService")
 	def dateService;
 
-	@Service("PaymentOrderService")
-	def paymentOrderSvc;
+	@Service(dynamic=true)
+	def dynSvc;
+
+	@DataContext("paymentorder")
+   	def pmtOrderEm;
 
 	@Service("NumberService")
 	def numSvc;
@@ -50,10 +50,6 @@ class CashReceiptService  {
 
 	@Env
 	def env;
-
-	@Service('PersistenceService')
-	def persistence 
-	
 
 	@Service("AFControlService")
 	def afControlSvc;
@@ -168,9 +164,15 @@ class CashReceiptService  {
 		afControlSvc.updateNextSeries( p );
 
 		if ( p._paymentorderid ) { 
-			//retrieve payment order first before firing close
-			def po = paymentOrderEm.find([ objid: p._paymentorderid ]).first(); 
-			if ( po ) paymentOrderSvc.close( po ); 
+			//remove payment order. we need to load first payment order so it can be evaluated by interceptors
+			def svc = null;
+			if(!p._connection || p._connection == "default" ) {
+				svc = dynSvc.lookup("PaymentOrderService");
+			}
+			else {
+				svc = dynSvc.lookup("PaymentOrderService", p._connection );
+			}
+			svc.postPayment( [objid: p._paymentorderid ] );
 		} 
 
 		return formatReport(p);

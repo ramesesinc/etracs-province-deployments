@@ -15,3 +15,9 @@ services:
          ## 
          - ./dev_modules/rptis-2.5.04.03.01/server:/services/modules/rptis
          - ./dev_modules/rptis-2.5.04.03.01/server.conf:/apps/etracs25/modules.conf.d/rptis.conf
+
+         ## mounted updates
+         ## 
+         - ./dev_modules/admin:/services/modules/admin
+         - ./dev_modules/jasper:/services/modules/jasper
+         - ./dev_modules/treasury:/services/modules/treasury

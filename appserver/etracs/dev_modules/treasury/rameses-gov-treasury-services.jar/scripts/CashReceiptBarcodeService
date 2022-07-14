@@ -6,41 +6,60 @@ import com.rameses.services.extended.*;
 
 public class CashReceiptBarcodeService {
 	
-	@ActiveDB("collectiontype")
-	def collectionType;
+	@DataContext("collectiontype")
+	def collectionTypeEm;
 
-	@Service("CashReceiptService")
-	def service;
+	@DataContext("barcode_launcher")
+	def barcodeLauncherEm;
+
+	@Service(dynamic=true)
+	def dynSvc;
 
 	@Env
 	def env;
 
-	@Service
-	def self;
-
-
-	/************************************************************************************************************
-	* This method is used for barcodes that do not have prefixes. It is required to check the database
-	* of each handler if it exists.
-	************************************************************************************************************/
-	@ProxyMethod
-	public def findPrefix( def o ) {
-		return [:];
+	private def getPaymentOrderService(def conn) {
+		if( conn==null || conn=="default" )	{
+			return dynSvc.lookup("PaymentOrderService");
+		}	
+		else {
+			return dynSvc.lookup("PaymentOrderService", conn);
+		}	
 	}
 
 	@ProxyMethod
-	public def init( def o ) {
-		//you must handle the prefix in this area for handlers of barcodes.
-		def prefix = o.prefix;
-		def collectiontype = collectionType.findCollectionTypeByBarcode([barcode: prefix]);
-		if(!collectiontype)	
-			throw new Exception("Collection type not found with barcode prefix " + prefix + ". Please check collection type and register barcode prefix");
-		def z = [formtype: "serial", formno: collectiontype.formno, txnmode: 'ONLINE', collectiontype: collectiontype ];
-        def entity = service.init( z );	
-        entity.collectiontype = collectiontype;
-        return entity;
+	public def getBarcodeInfo( def o ) {
+		if (!o) throw new Exception("barcode  is required in getBarcodeInfo method");
+		if (!(o instanceof String)) throw new Exception("getBarcodeInfo method requires a String argument");
+
+		def arr = o.split( ":" );
+		if ( arr.length < 1 ) 
+			throw new Exception("Invalid barcode format. It should follow the ff. format <KEY:REFNO>");
+
+		def barcodekey = arr[0];
+		def refno = arr[1];
+
+		def result = [:];
+		def bc = barcodeLauncherEm.find( [objid: barcodekey] ).first();
+		if ( !bc ) throw new Exception("barcode launcher " + map.barcodekey + " not found");
+
+		if( bc.paymentorder == 0 ) {
+			result.refno = refno;
+			result.barcodeid = refno;
+			result.collectiontype = bc.collectiontype;
+		}
+		else {
+			def poSvc = getPaymentOrderService( bc.connection );
+			result = poSvc.getBilling([ refno: refno ]);
+			if ( result.refno ) {
+				result.barcodeid = result.refno;
+			}
+			if ( result.params ) {
+				result.barcodeparams = result.params;
+			}
+
+			result.collectiontype = collectionTypeEm.find([objid: result.type.collectiontype.objid ]).first();
+		}
+		return result;	
 	}
-
-
-
 }

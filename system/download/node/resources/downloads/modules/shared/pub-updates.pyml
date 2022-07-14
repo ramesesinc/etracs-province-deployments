@@ -15,4 +15,4 @@ app:
       - { order: 160, version: 2.04, file: "modules/shared/rameses-enterprise-financial.jar" }
       - { order: 161, version: 2.02, file: "modules/shared/rameses-client-notification2.jar" }
       - { order: 162, version: 2.02, file: "modules/shared/rameses-email-client.jar" }
-      - { order: 163, version: 2.04, file: "modules/shared/rameses-jasper-client.jar" }
+      - { order: 163, version: 2.05, file: "modules/shared/rameses-jasper-client.jar" }
