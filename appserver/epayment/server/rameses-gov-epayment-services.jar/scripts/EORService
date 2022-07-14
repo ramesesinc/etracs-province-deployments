@@ -65,6 +65,11 @@ class EORService {
             throw new Exception("entity.paymentrefid is null");
 
         entity.items = po.items; 
+        entity.items.each{
+            if ( it.item && !it.item.code ) {
+                it.item.code = '-'; 
+            }
+        }
 
         //calculate sharing first
         entity.sharing = sharingSvc.execute( entity );
