@@ -1,0 +1,35 @@
+import com.rameses.annotations.*;
+import com.rameses.util.Compression;
+
+class QrCodeInfoService {
+	
+	@ProxyMethod
+	public def getInfos(params) {
+		return [];
+	}
+
+	@ProxyMethod
+	public def encode(params) {
+		def retval = [:];
+		retval.data = new Compression().deflateToString( params ); 
+		return retval;
+	}
+
+	@ProxyMethod
+	public def getData(params) {
+		def retval = encode(params);
+		def host = params.host ? params.host : 'https://www.filipizen.com';
+		return host + '/qr?data=' + retval.data;
+	}
+
+	@ProxyMethod
+	public def decode(params) {
+		if (!params.data) throw new Exception('data must be specified');
+
+		def res = new Compression().inflate( params );
+		if ( res instanceof Map || res instanceof List ) {
+			return res; 
+		}
+		throw new Exception('Data is invalid.');
+	}
+}

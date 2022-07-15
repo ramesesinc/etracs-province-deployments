@@ -40,10 +40,10 @@ class EORFormReportInterceptor {
         def objid = p.parameters.objid;
         if(!objid) throw new Exception("objid is required in eor report");
         
-        def rct = epmtSvc.getReceipt( [objid: objid ] );
-        rct.qrcode = "qrcode:" + rct.receiptno;
+        def rct = epmtSvc.getReceipt([ objid: objid ]);
+        rct.qrcode = buildQrCodeData( objid ); 
         rct.amountinwords = numSvc.doubleToWords( rct.amount );
-        rct.template = "reports/epayment/eor51";        
+        rct.template = "reports/epayment/eor51";
         result.data = rct;
     }   
 
@@ -61,8 +61,8 @@ class EORFormReportInterceptor {
         def o = evt.args[0];
         def refid = o.refid;
 
-        def result = formReportSvc.getData([reportid: "eor", parameters:[objid: refid]])
-        def eor = result.data
+        def result = formReportSvc.getData([reportid: "eor", parameters:[objid: refid]]);
+        def eor = result.data;
 
         o.attachments = [
             [ title:  eor.receiptno + ".pdf", reportid: "eor", data: eor ]
@@ -80,5 +80,23 @@ class EORFormReportInterceptor {
         }        
     } 
 
+    def buildQrCodeData( objid ) {
+        def qrCodeSvc = null; 
+        try {
+            qrCodeSvc = dynamicSvc.lookup("QrCodeInfoService"); 
+        } 
+        catch(Throwable t) {
+            println '[error] '+ t.message;
+        } 
 
+        if ( qrCodeSvc == null ) return; 
+
+        def data = [:];
+        data.orgcode = dynamicSvc.lookup('OrgService', 'etracs').getRoot()?.objid; 
+
+        data.connection = "epayment";
+        data.reftype = "epayment_eor";
+        data.refid = objid;
+        return "qrcode:" + qrCodeSvc.getData( data ); 
+    } 
 }

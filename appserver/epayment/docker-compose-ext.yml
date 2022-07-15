@@ -3,5 +3,5 @@ version: "3"
 services:
 
    epayment-server:
-#      volumes:
-#
+      volumes:
+         - ./lib/rameses-common2.jar:/apps/server/lib/rameses-common2.jar

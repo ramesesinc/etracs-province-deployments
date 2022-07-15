@@ -234,6 +234,7 @@ class EPaymentService   {
             if(laststate == 1) {
                 try {
                     def po = poPaidEm.find([ objid: eor.paymentrefid ]).first();
+                    println 'po ==> '+ po;
                     def pluginSvc = findPluginSvc( po.txntype );
                     def bill = pluginSvc.verifyPayment( po );
                     pluginSvc.postPayment( eor, bill );
