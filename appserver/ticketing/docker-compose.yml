@@ -28,3 +28,7 @@ services:
       - ./client/reports:/apps/server/templates
       - ../../_custom/module-client/ticketing:/apps/server/templates/custom
       - ../../_custom/output:/apps/server/output
+
+      - ../../_custom/report-files/ticketing:/report-files
+
+      - ./lib/rameses-common2.jar:/apps/server/lib/rameses-common2.jar
