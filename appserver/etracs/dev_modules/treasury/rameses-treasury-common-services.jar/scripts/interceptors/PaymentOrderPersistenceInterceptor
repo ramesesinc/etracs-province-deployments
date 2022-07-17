@@ -1,32 +1,33 @@
 import com.rameses.annotations.*;
-import java.rmi.server.*;
-import com.rameses.util.*;
 
 class PaymentOrderPersistenceInterceptor {
 
 	@Service("PaymentOrderService")
-	def pmtOrderSvc;
+	def poSvc;
 
 	@Before(pattern="PersistenceService.create", eval="#{args[0]._schemaname == 'paymentorder'}")
-	public def beforeCreatePaymentOrder(def evt) { 
+	public void beforeCreate( evt ) { 
 		def r = evt.args[0];
-		r = pmtOrderSvc.initData( r );
+		poSvc.initData( r );
 	} 
 
 	@After(pattern="PersistenceService.create", eval="#{args[0]._schemaname == 'paymentorder'}")
-	public def afterCreatePaymentOrder(def evt) { 
+	public void afterCreate( evt ) { 
 		def a = evt.args[0];
 		def result = evt.result;
-		def bc = pmtOrderSvc.getBarcodePrefix( a._connection );
-		result.txncode = bc?.barcodeid + ":" + result.objid;
+		resolveData( a, result );
 	}	
 
-	@After(pattern="PersistenceService.read", eval="#{ args[0]._schemaname == 'paymentorder' }" )
-	public void beforeRead(def evt) {
+	@After(pattern="PersistenceService.read", eval="#{args[0]._schemaname == 'paymentorder'}")
+	public void afterRead( evt ) {
 		def a = evt.args[0];
 		def result = evt.result;
-		def bc = pmtOrderSvc.getBarcodePrefix( a._connection );
-		result.txncode = bc?.barcodeid + ":" + result.objid;
+		resolveData( a, result );
 	}
 
+	void resolveData( req, res ) {
+		def bc = poSvc.getBarcodePrefix( req?._connection ); 
+		res.txncode = bc?.barcodeid +":"+ res.objid; 
+		res.checksum = poSvc.buildCheckSum( res.objid ); 
+	}
 }

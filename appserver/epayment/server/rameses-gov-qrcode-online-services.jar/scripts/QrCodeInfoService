@@ -1,5 +1,6 @@
 import com.rameses.annotations.*;
 import com.rameses.util.Compression;
+import com.rameses.util.Base64Cipher;
 
 class QrCodeInfoService {
 	
@@ -9,24 +10,25 @@ class QrCodeInfoService {
 	}
 
 	@ProxyMethod
-	public def encode(params) {
-		def retval = [:];
-		retval.data = new Compression().deflateToString( params ); 
-		return retval;
+	public def encode( param ) {
+		return [ data: new Compression().deflateToString( param ) ];
 	}
 
 	@ProxyMethod
-	public def getData(params) {
-		def retval = encode(params);
-		def host = params.host ? params.host : 'https://www.filipizen.com';
-		return host + '/qr?data=' + retval.data;
+	public def getData( param ) {
+		def res = encode( param );
+		def buff = new StringBuilder();
+		buff.append( param.host ? param.host : 'https://www.filipizen.com' );
+		buff.append('/qr?data=').append( res.data ); 
+		return buff.toString(); 
 	}
 
 	@ProxyMethod
-	public def decode(params) {
-		if (!params.data) throw new Exception('data must be specified');
+	public def decode( param ) {
+		if ( !param.data ) throw new Exception('data must be specified');
 
-		def res = new Compression().inflate( params );
+		def encstr = param.data.toString().replace(' ','+');
+		def res = new Compression().inflate( encstr );
 		if ( res instanceof Map || res instanceof List ) {
 			return res; 
 		}

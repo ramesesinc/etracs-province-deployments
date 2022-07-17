@@ -152,6 +152,15 @@ class PaymentOrderService {
 
 	@ProxyMethod
 	public void verifyCheckSum( objid, checksum ) {
+		def newchecksum = buildCheckSum( objid ); 
+		if ( newchecksum != checksum ) {
+			println '\n\nnewchecksum: '+ newchecksum +', oldchecksum: '+ checksum; 
+			throw new Exception("Invalid Payment Order "+ po.objid);
+		}
+	}
+
+	@ProxyMethod(local=true)
+	public def buildCheckSum( objid ) {
 		def po = pmtOrderEm.find([ objid: objid ]).select('objid,amount,email').first(); 
 		if ( !po ) throw new Exception("'"+ objid +"' payment order not found");
 
@@ -159,12 +168,7 @@ class PaymentOrderService {
 		buff.append( po.objid ); 
 		buff.append( new java.text.DecimalFormat('0.00').format( po.amount ));
 		buff.append( po.email.toString()); 
-
-		def newchecksum = com.rameses.util.Encoder.MD5.encode( buff.toString());
-		if ( newchecksum != checksum ) {
-			println '\n\nnewchecksum: '+ newchecksum +', oldchecksum: '+ checksum; 
-			throw new Exception("Invalid Payment Order "+ po.objid);
-		}
+		return com.rameses.util.Encoder.MD5.encode( buff.toString(), po.objid);
 	}
 
 
