@@ -189,3 +189,10 @@ from collectiontype c
 where o.objid is null 
   and c.state = 'ACTIVE'
 go 
+
+
+INSERT INTO barcode_launcher (objid, connection, paymentorder, collectiontypeid, title) 
+VALUES ('PMO', 'default', '1', NULL, 'PAYMENT ORDER ETRACS');
+
+INSERT INTO paymentorder_type (objid, title, collectiontype_objid, collectiontype_name, [system]) 
+VALUES ('GENERAL', 'GENERAL', 'GEN_COL', 'GENERAL_COLLECTION', NULL);
