@@ -74,10 +74,7 @@ class TicketingService {
 
 				// persist the data if not exist
 				def tk = em_ticket.find([ objid: qr.objid ]).select('objid').first(); 
-				if ( !tk ) {
-					em_ticket.debug = true;
-					em_ticket.create( qr ); 
-				}
+				if ( !tk ) em_ticket.create( qr ); 
 
 				barcode = qr.barcode; 
 			}
